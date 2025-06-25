@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Ders Notları</title>
+  <link rel="stylesheet" href="styles/style.css">
+  <script>
+    const user = sessionStorage.getItem("user");
+    if (user !== "admin") {
+      alert("Bu sayfaya yalnızca giriş yapmış kullanıcılar erişebilir.");
+      window.location.href = "index.html";
+    }
+  </script>
+</head>
+<body>
+  <div class="content-box">
+    <h1>Ders Notları</h1>
+    <ul>
+      <li><a href="#">Lineer Cebir - Final Notları</a></li>
+      <li><a href="#">Yapay Zeka - Özet</a></li>
+      <li><a href="#">Matematiksel Mantık - Örnek Sorular</a></li>
+    </ul>
+    <a href="home.html">← Ana Menüye Dön</a>
+  </div>
+</body>
+</html>

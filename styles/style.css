@@ -1,0 +1,111 @@
+/* Genel stil ayarları */
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: #B2D8F7; /* Bebek mavisi */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+h1 {
+    color: #000000;
+    text-align: center;
+}
+
+a {
+    color: #000000;
+    text-decoration: none;
+}
+
+.login-container {
+    background-color: #FFFFFF; /* Beyaz arka plan */
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 300px;
+    text-align: center;
+}
+
+input {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+}
+
+button {
+    width: 100%;
+    padding: 10px;
+    background-color: #000000; /* Siyah buton */
+    color: #FFFFFF;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #333333; /* Hover efekti */
+}
+
+.guest-login {
+    margin-top: 20px;
+}
+
+.guest-login button {
+    background-color: #FFB6C1; /* Misafir girişi butonu rengi */
+}
+
+.guest-login button:hover {
+    background-color: #FF5A6A;
+}
+
+.menu-container {
+    background-color: #FFFFFF;
+    padding: 40px;
+    border-radius: 15px;
+    width: 90%;
+    max-width: 500px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.menu-button {
+    background-color: #FFFFFF;
+    color: #000000;
+    border: 2px solid #000000;
+    padding: 15px;
+    margin: 20px 0;
+    border-radius: 10px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.menu-button:hover {
+    background-color: #f0f0f0;
+}
+
+.content-box {
+    background-color: #FFFFFF;
+    padding: 30px;
+    margin: 40px auto;
+    max-width: 600px;
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    font-size: 1.1rem;
+    color: #000;
+}
+
+.content-box h1 {
+    margin-bottom: 20px;
+}
+
+.content-box a {
+    display: inline-block;
+    margin-top: 20px;
+    color: #000;
+    font-weight: bold;
+}

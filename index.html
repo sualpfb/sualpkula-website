@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sualp Kula Web Sitesi - Giriş</title>
+    <link rel="stylesheet" href="styles/style.css">
+</head>
+<body>
+    <div class="login-container">
+        <h1>Giriş Yap</h1>
+        <form id="login-form">
+            <input type="text" id="username" placeholder="Kullanıcı Adı" required>
+            <input type="password" id="password" placeholder="Şifre" required>
+            <button type="submit">Giriş Yap</button>
+        </form>
+        <div class="guest-login">
+            <button onclick="guestLogin()">Misafir Girişi</button>
+        </div>
+        <p>Hesabınız yok mu? <a href="#">Kayıt Ol</a></p>
+    </div>
+
+    <script src="scripts/auth.js"></script>
+</body>
+</html>

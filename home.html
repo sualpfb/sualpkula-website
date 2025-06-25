@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ana Menü - Sualp Kula</title>
+  <link rel="stylesheet" href="styles/style.css">
+  <script>
+    // Basit kimlik kontrolü (geliştirilecek)
+    const userType = sessionStorage.getItem("user") || "guest"; // 'admin' veya 'guest'
+  </script>
+</head>
+<body>
+  <div class="menu-container">
+    <h1>Hoş Geldin!</h1>
+    <div class="menu-button" onclick="location.href='kimdir.html'">Sualp Kula kimdir?</div>
+    <div class="menu-button" onclick="goToPage('ders')">DERS NOTLARI</div>
+    <div class="menu-button" onclick="goToPage('surpriz')">SÜRPRİZ</div>
+  </div>
+
+  <script>
+    function goToPage(page) {
+      if (userType === "guest") {
+        alert("Bu bölüme erişmek için giriş yapmalısınız.");
+        return;
+      }
+      if (page === "ders") location.href = "ders-notlari.html";
+      else if (page === "surpriz") location.href = "surpriz.html";
+    }
+  </script>
+</body>
+</html>

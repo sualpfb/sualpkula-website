@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Kayıt Ol</title>
+  <link rel="stylesheet" href="styles/style.css">
+</head>
+<body>
+  <div class="login-container">
+    <h1>Kayıt Ol</h1>
+    <form id="register-form">
+      <input type="text" id="new-username" placeholder="Kullanıcı Adı" required>
+      <input type="password" id="new-password" placeholder="Şifre" required>
+      <button type="submit">Kayıt Ol</button>
+    </form>
+    <p>Zaten bir hesabın var mı? <a href="index.html">Giriş Yap</a></p>
+  </div>
+
+  <script>
+    document.getElementById('register-form').addEventListener('submit', function(event) {
+      event.preventDefault();
+      const username = document.getElementById('new-username').value;
+      const password = document.getElementById('new-password').value;
+
+      // Şimdilik kullanıcıları localStorage'ta tutuyoruz (geçici çözüm)
+      let users = JSON.parse(localStorage.getItem('users')) || [];
+      const exists = users.find(user => user.username === username);
+      if (exists) {
+        alert("Bu kullanıcı adı zaten alınmış.");
+        return;
+      }
+
+      users.push({ username, password });
+      localStorage.setItem('users', JSON.stringify(users));
+      alert("Kayıt başarılı! Giriş sayfasına yönlendiriliyorsunuz.");
+      window.location.href = "index.html";
+    });
+  </script>
+</body>
+</html>

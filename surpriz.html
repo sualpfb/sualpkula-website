@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Sürpriz</title>
+  <link rel="stylesheet" href="styles/style.css">
+  <script>
+    const user = sessionStorage.getItem("user");
+    if (user !== "admin") {
+      alert("Bu sayfaya yalnızca giriş yapmış kullanıcılar erişebilir.");
+      window.location.href = "index.html";
+    }
+  </script>
+</head>
+<body>
+  <div class="content-box">
+    <h1>🎉 Sürpriz İçerik 🎉</h1>
+    <p>Buraya özel bir video, müzik listesi veya eğlenceli bir mesaj yerleştirebilirsin!</p>
+    <iframe width="300" height="170" src="https://www.youtube.com/embed/dQw4w9WgXcQ" allowfullscreen></iframe>
+    <p>Şaka bir yana, yakında burada özel içerikler olacak :)</p>
+    <a href="home.html">← Ana Menüye Dön</a>
+  </div>
+</body>
+</html>
