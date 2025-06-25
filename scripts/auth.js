@@ -1,5 +1,5 @@
-const SUPABASE_URL = "https://bvlyzxljieftbkzkdwzv.supabase.co";  // kendi URL’in
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2bHl6eGxqaWVmdGJremtkd3p2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4ODQxNTgsImV4cCI6MjA2NjQ2MDE1OH0.mJEavNb2WC_0pBpg8KJq0ABc2hquYTewoge38U5P7dw";              // kendi public anon key’in
+const SUPABASE_URL = "https://bvlyzxljieftbkzkdwzv.supabase.co"; // Senin Supabase URL
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2bHl6eGxqaWVmdGJremtkd3p2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4ODQxNTgsImV4cCI6MjA2NjQ2MDE1OH0.mJEavNb2WC_0pBpg8KJq0ABc2hquYTewoge38U5P7dw";
 
 const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -20,7 +20,7 @@ document.getElementById('login-form')?.addEventListener('submit', async function
   }
 });
 
-// KAYIT (register.html içinde kullanılacak)
+// KAYIT
 document.getElementById('register-form')?.addEventListener('submit', async function(event) {
   event.preventDefault();
   const email = document.getElementById('new-username').value;
@@ -35,3 +35,10 @@ document.getElementById('register-form')?.addEventListener('submit', async funct
     window.location.href = "index.html";
   }
 });
+
+// MİSAFİR GİRİŞİ
+function guestLogin() {
+  sessionStorage.setItem("user", "guest");
+  alert("Misafir olarak giriş yapıldı!");
+  window.location.href = "home.html";
+}
