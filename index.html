@@ -3,26 +3,106 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Sualp Kula Web Sitesi - Giriş</title>
+  <title>Giriş Yap - Sualp Kula</title>
   <link rel="stylesheet" href="styles/style.css" />
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #B2D8F7;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .login-container {
+      background-color: #ffffff;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      text-align: center;
+      width: 90%;
+      max-width: 400px;
+    }
+
+    .profile-photo {
+      width: 120px;
+      height: 120px;
+      object-fit: cover;
+      border-radius: 50%;
+      border: 4px solid white;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      margin-bottom: 20px;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+      border: 1px solid #ddd;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px;
+      background-color: #000000;
+      color: #ffffff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    button:hover {
+      background-color: #333333;
+    }
+
+    .guest-login button {
+      background-color: #FFB6C1;
+    }
+
+    .guest-login button:hover {
+      background-color: #FF5A6A;
+    }
+
+    .link-text {
+      margin-top: 20px;
+      font-size: 14px;
+    }
+
+    .link-text a {
+      color: #000000;
+      text-decoration: underline;
+    }
+  </style>
+
+  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <script src="scripts/auth.js" defer></script>
 </head>
 <body>
+
   <div class="login-container">
-    <div class="profile-pic-wrapper">
-      <img src="images/sualp.jpg" alt="Sualp Kula" class="profile-pic" />
-    </div>
-    <h1>Giriş Yap</h1>
+    <img src="images/sualp.jpg" alt="Sualp Kula" class="profile-photo" />
+
+    <h2>Giriş Yap</h2>
     <form id="login-form">
       <input type="email" id="username" placeholder="E-posta" required />
       <input type="password" id="password" placeholder="Şifre" required />
       <button type="submit">Giriş Yap</button>
     </form>
+
     <div class="guest-login">
       <button type="button" onclick="guestLogin()">Misafir Girişi</button>
     </div>
-    <p>Hesabınız yok mu? <a href="register.html">Kayıt Ol</a></p>
+
+    <div class="link-text">
+      Hesabınız yok mu? <a href="register.html">Kayıt Ol</a>
+    </div>
   </div>
+
 </body>
 </html>
