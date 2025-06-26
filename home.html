@@ -5,6 +5,124 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Ana Menü</title>
   <link rel="stylesheet" href="styles/style.css" />
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #e0f7fa;
+    }
+
+    .top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background-color: #b2ebf2;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 20px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      z-index: 100;
+    }
+
+    .welcome-text {
+      font-size: 22px;
+      font-weight: bold;
+      color: #004d40;
+    }
+
+    .profile-button {
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 30px;
+      padding: 5px 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .profile-img-small {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    #profile-box {
+      position: absolute;
+      top: 70px;
+      right: 20px;
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+      display: none;
+      width: 220px;
+    }
+
+    #profile-box input,
+    #profile-box textarea {
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 6px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    input[type="file"] {
+      border: none;
+    }
+
+    .main-content {
+      margin-top: 100px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .menu-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      width: 250px;
+    }
+
+    .menu-button {
+      padding: 15px 25px;
+      font-size: 18px;
+      background-color: white;
+      border: 2px solid #000;
+      border-radius: 12px;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+      cursor: pointer;
+      color: #000;
+      transition: background-color 0.2s ease;
+    }
+
+    .menu-button:hover {
+      background-color: #e1f5fe;
+    }
+
+    .menu-button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+      color: #666;
+    }
+
+    .profile-pic-large {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 4px solid #fff;
+      box-shadow: 0 0 8px rgba(0,0,0,0.15);
+      margin-bottom: 20px;
+    }
+  </style>
 </head>
 <body>
 
@@ -30,6 +148,7 @@
   </div>
 
   <div class="main-content">
+    <img src="https://via.placeholder.com/150" id="large-profile" class="profile-pic-large" alt="Profil Fotoğrafı" />
     <div class="menu-buttons">
       <button class="menu-button" onclick="window.location.href='kimdir.html'">Sualp Kula</button>
       <button class="menu-button" onclick="window.location.href='ders-notlari.html'">Ders Notları</button>
@@ -51,6 +170,7 @@
       }
       if (data?.photo) {
         document.getElementById("mini-profile").src = data.photo;
+        document.getElementById("large-profile").src = data.photo;
       }
     }
 
