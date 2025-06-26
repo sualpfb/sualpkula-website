@@ -80,14 +80,15 @@ button {
   width: 100%;
   margin-top: 15px;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
   gap: 10px;
 }
 
 .guest-btn {
-  flex-grow: 1;
+  flex: 1; /* Eşit genişlik için */
+  padding: 12px;
+  font-size: 16px;
 }
+
 
 .register-link {
   color: #ff69b4;
