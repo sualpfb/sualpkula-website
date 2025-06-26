@@ -117,10 +117,10 @@ button:hover {
 }
 
 .profile-pic {
-  width: 150px;
+  width: 150px;               /* boyut */
   height: 150px;
-  object-fit: cover;
-  border: 4px solid white;
-  border-radius: 100px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.2);
+  object-fit: cover;          /* taşmadan sığması için */
+  border-radius: 50%;         /* yuvarlak yapar */
+  border: 4px solid white;    /* çerçeve */
+  box-shadow: 0 0 10px rgba(0,0,0,0.2);  /* gölge efekti */
 }
