@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Ana Menü</title>
+  <title>Ana Menü - Sualp Kula</title>
   <link rel="stylesheet" href="styles/style.css" />
 </head>
 <body>
@@ -12,7 +12,7 @@
     <div class="welcome-text" id="welcome-message">Hoş geldin!</div>
     <div class="profile-section">
       <div class="profile-button" onclick="toggleProfile()">
-        <img src="https://via.placeholder.com/30" id="mini-profile" class="profile-img-small" />
+        <img src="images/sualp.jpg" id="mini-profile" class="profile-img-small" />
         <span id="mini-name">Profil</span>
       </div>
       <div id="profile-box">
@@ -31,16 +31,16 @@
 
   <div class="main-content">
     <div class="menu-buttons">
-      <button onclick="window.location.href='kimdir.html'">Sualp Kula</button>
-      <button onclick="window.location.href='ders-notlari.html'">Ders Notları</button>
-      <button disabled>Yükleniyor...</button>
+      <button class="menu-button" onclick="window.location.href='kimdir.html'">Sualp Kula</button>
+      <button class="menu-button" onclick="window.location.href='ders-notlari.html'">Ders Notları</button>
+      <button class="menu-button" disabled>Yükleniyor...</button>
     </div>
   </div>
 
   <script>
     function toggleProfile() {
       const box = document.getElementById("profile-box");
-      box.style.display = box.style.display === "none" ? "block" : "none";
+      box.style.display = box.style.display === "none" || box.style.display === "" ? "block" : "none";
     }
 
     function showWelcome() {
@@ -52,6 +52,10 @@
       if (data?.photo) {
         document.getElementById("mini-profile").src = data.photo;
       }
+      if (data?.ad) document.getElementById("ad").value = data.ad;
+      if (data?.soyad) document.getElementById("soyad").value = data.soyad;
+      if (data?.uni) document.getElementById("uni").value = data.uni;
+      if (data?.hobiler) document.getElementById("hobiler").value = data.hobiler;
     }
 
     document.getElementById("profile-form").addEventListener("submit", function(e) {
@@ -74,7 +78,7 @@
       if (photoInput.files[0]) {
         reader.readAsDataURL(photoInput.files[0]);
       } else {
-        const userData = { ad, soyad, uni, hobiler };
+        const userData = { ad, soyad, uni, hobiler, photo: document.getElementById("mini-profile").src };
         localStorage.setItem("userProfile", JSON.stringify(userData));
         showWelcome();
         toggleProfile();
