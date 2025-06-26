@@ -3,30 +3,65 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ana Menü - Sualp Kula</title>
+  <title>Ana Menü</title>
   <link rel="stylesheet" href="styles/style.css">
-  <script>
-    // Basit kimlik kontrolü (geliştirilecek)
-    const userType = sessionStorage.getItem("user") || "guest"; // 'admin' veya 'guest'
-  </script>
 </head>
 <body>
-  <div class="menu-container">
-    <h1>Hoş Geldin!</h1>
-    <div class="menu-button" onclick="location.href='kimdir.html'">Sualp Kula kimdir?</div>
-    <div class="menu-button" onclick="goToPage('ders')">DERS NOTLARI</div>
-    <div class="menu-button" onclick="goToPage('surpriz')">SÜRPRİZ</div>
+  <h1>Ana Menü</h1>
+
+  <!-- Sağ üstte kullanıcı sekmesi -->
+  <div style="position: absolute; top: 10px; right: 20px;">
+    <button onclick="toggleProfile()">👤</button>
+  </div>
+
+  <!-- Profil kutusu -->
+  <div id="profile-box" style="display: none; position: absolute; top: 50px; right: 20px; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 0 5px rgba(0,0,0,0.1); z-index: 100;">
+    <form id="profile-form">
+      <input type="text" id="ad" placeholder="Ad" /><br />
+      <input type="text" id="soyad" placeholder="Soyad" /><br />
+      <input type="text" id="uni" placeholder="Üniversite-Bölüm" /><br />
+      <textarea id="hobiler" placeholder="Hobiler"></textarea><br />
+      <button type="submit">Kaydet</button>
+    </form>
+  </div>
+
+  <!-- Hoş geldin mesajı -->
+  <h2 id="welcome-message"></h2>
+
+  <!-- Menü butonları -->
+  <div class="menu-buttons" style="display: flex; gap: 20px; flex-wrap: wrap;">
+    <button onclick="window.location.href='kimdir.html'">Sualp Kula Kimdir?</button>
+    <button onclick="window.location.href='ders-notlari.html'">Ders Notları</button>
+    <button onclick="window.open('https://www.youtube.com/watch?v=kIQb2x2pSkI', '_blank')">Sürpriz</button>
   </div>
 
   <script>
-    function goToPage(page) {
-      if (userType === "guest") {
-        alert("Bu bölüme erişmek için giriş yapmalısınız.");
-        return;
-      }
-      if (page === "ders") location.href = "ders-notlari.html";
-      else if (page === "surpriz") location.href = "surpriz.html";
+    function toggleProfile() {
+      const box = document.getElementById("profile-box");
+      box.style.display = box.style.display === "none" ? "block" : "none";
     }
+
+    document.getElementById("profile-form").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const ad = document.getElementById("ad").value;
+      const soyad = document.getElementById("soyad").value;
+      const uni = document.getElementById("uni").value;
+      const hobiler = document.getElementById("hobiler").value;
+
+      const userData = { ad, soyad, uni, hobiler };
+      localStorage.setItem("userProfile", JSON.stringify(userData));
+      showWelcome();
+      toggleProfile();
+    });
+
+    function showWelcome() {
+      const data = JSON.parse(localStorage.getItem("userProfile"));
+      if (data?.ad) {
+        document.getElementById("welcome-message").textContent = `Hoş geldin, ${data.ad}!`;
+      }
+    }
+
+    window.onload = showWelcome;
   </script>
 </body>
 </html>
