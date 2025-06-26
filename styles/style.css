@@ -1,170 +1,112 @@
 /* Genel stil ayarları */
 body {
     font-family: 'Poppins', sans-serif;
-    background-color: #B2D8F7; /* Bebek mavisi */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
+    background-color: #B2D8F7;
     margin: 0;
+    padding: 0;
 }
 
-h1 {
-    color: #000000;
-    text-align: center;
+/* Üst bar */
+.top-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background-color: #b2ebf2;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    z-index: 100;
 }
 
-a {
-    color: #000000;
-    text-decoration: none;
+.welcome-text {
+    font-size: 22px;
+    font-weight: bold;
+    color: #004d40;
 }
 
-/* Giriş/Kayıt Kartı */
-.login-container {
-    background-color: #FFFFFF; /* Beyaz arka plan */
-    padding: 30px;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    width: 300px;
-    text-align: center;
-}
-
-input {
-    width: 100%;
-    padding: 10px;
-    margin: 10px 0;
-    border-radius: 5px;
-    border: 1px solid #ddd;
-}
-
-button {
-    width: 100%;
-    padding: 10px;
-    background-color: #000000; /* Siyah buton */
-    color: #FFFFFF;
-    border: none;
-    border-radius: 5px;
+/* Profil butonu */
+.profile-button {
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 30px;
+    padding: 5px 10px;
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-button:hover {
-    background-color: #333333;
+.profile-img-small {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    object-fit: cover;
 }
 
-/* Misafir Girişi */
-.guest-login {
-    margin-top: 20px;
+/* Profil kutusu */
+#profile-box {
+    position: absolute;
+    top: 70px;
+    right: 20px;
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+    display: none;
+    width: 220px;
 }
 
-.guest-login button {
-    background-color: #FFB6C1; /* Pembe */
-    color: #000;
+#profile-box input,
+#profile-box textarea {
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 6px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
 }
 
-.guest-login button:hover {
-    background-color: #FF5A6A;
-    color: #fff;
+input[type="file"] {
+    border: none;
 }
 
-/* Menü Kartı (Ana Sayfa Butonları) */
-.menu-container {
-    background-color: #FFFFFF;
-    padding: 40px;
-    border-radius: 15px;
-    width: 90%;
-    max-width: 500px;
-    text-align: center;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-
+/* Ana içerik */
+.main-content {
+    margin-top: 100px;
     display: flex;
     flex-direction: column;
     align-items: center;
-
-    opacity: 1 !important;
-    visibility: visible !important;
-    pointer-events: auto;
-    position: relative;
-    z-index: 10;
 }
 
-/* Menü Butonları */
-.menu-button {
-    background-color: #FFFFFF;
-    color: #000000;
-    border: 2px solid #000000;
-    padding: 15px 20px;
-    margin: 15px 0;
-    border-radius: 10px;
-    font-size: 1.2rem;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
+/* Menü butonları */
+.menu-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 250px;
+}
 
-    opacity: 1 !important;
-    visibility: visible !important;
-    pointer-events: auto;
-    display: inline-block;
+.menu-button {
+    padding: 15px 25px;
+    font-size: 18px;
+    background-color: white;
+    border: 2px solid #000;
+    border-radius: 12px;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    color: #000;
+    transition: background-color 0.2s ease;
 }
 
 .menu-button:hover {
-    background-color: #f0f0f0;
+    background-color: #e1f5fe;
 }
 
-/* İçerik Kutusu (Kimdir vs.) */
-.content-box {
-    background-color: #FFFFFF;
-    padding: 30px;
-    margin: 40px auto;
-    max-width: 600px;
-    border-radius: 15px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    font-size: 1.1rem;
-    color: #000;
-}
-
-.content-box h1 {
-    margin-bottom: 20px;
-}
-
-.content-box a {
-    display: inline-block;
-    margin-top: 20px;
-    color: #000;
-    font-weight: bold;
-}
-
-/* Profil Fotoğrafı Kutusu */
-.profile-pic-wrapper {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 20px;
-}
-
-.profile-pic {
-    width: 150px;
-    height: 150px;
-    object-fit: cover;
-    border-radius: 50%;
-    border: 4px solid white;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-}
-
-/* Mobil uyumluluk */
-@media (max-width: 600px) {
-    .login-container,
-    .menu-container,
-    .content-box {
-        width: 90%;
-        padding: 20px;
-    }
-
-    .menu-button {
-        font-size: 1rem;
-        padding: 12px;
-    }
-
-    .profile-pic {
-        width: 120px;
-        height: 120px;
-    }
+.menu-button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+    color: #666;
 }
