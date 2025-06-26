@@ -1,112 +1,193 @@
 /* Genel stil ayarları */
 body {
-    font-family: 'Poppins', sans-serif;
-    background-color: #B2D8F7;
-    margin: 0;
-    padding: 0;
+  font-family: 'Poppins', sans-serif;
+  background-color: #B2D8F7; /* Bebek mavisi */
+  margin: 0;
+  padding: 0;
 }
 
-/* Üst bar */
+/* Giriş ekranı container */
+.login-container {
+  background-color: #ffffff;
+  padding: 30px;
+  border-radius: 15px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  width: 90%;
+  max-width: 400px;
+  margin: auto;
+  margin-top: 8vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Profil fotoğrafı - Giriş ekranı ve profil küçük */
+.profile-photo {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 4px solid white;
+  box-shadow: 0 0 10px rgba(0,0,0,0.2);
+  margin-bottom: 20px;
+}
+
+.profile-img-small {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* Inputlar */
+input[type="email"],
+input[type="password"],
+input[type="text"],
+textarea {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+  border-radius: 5px;
+  border: 1px solid #ddd;
+  box-sizing: border-box;
+  font-size: 16px;
+}
+
+/* Butonlar */
+button {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 17px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+/* Pembe Butonlar */
+.btn-pink {
+  background-color: #ff69b4;
+  color: white;
+}
+
+.btn-pink:hover {
+  background-color: #e7549f;
+}
+
+/* Misafir ve Kayıt Butonlarının kapsayıcıları */
+.guest-register {
+  width: 100%;
+  margin-top: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.guest-btn {
+  flex-grow: 1;
+}
+
+.register-link {
+  color: #ff69b4;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* Üst bar - Home sayfası */
 .top-bar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 60px;
-    background-color: #b2ebf2;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 20px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    z-index: 100;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background-color: #b2ebf2;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  z-index: 100;
 }
 
+/* Hoş geldin yazısı */
 .welcome-text {
-    font-size: 22px;
-    font-weight: bold;
-    color: #004d40;
+  font-size: 22px;
+  font-weight: bold;
+  color: #004d40;
 }
 
 /* Profil butonu */
 .profile-button {
-    background: #fff;
-    border: 1px solid #ccc;
-    border-radius: 30px;
-    padding: 5px 10px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.profile-img-small {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    object-fit: cover;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 30px;
+  padding: 5px 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* Profil kutusu */
 #profile-box {
-    position: absolute;
-    top: 70px;
-    right: 20px;
-    background: white;
-    padding: 15px;
-    border-radius: 10px;
-    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-    display: none;
-    width: 220px;
+  position: absolute;
+  top: 70px;
+  right: 20px;
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+  display: none;
+  width: 220px;
 }
 
 #profile-box input,
 #profile-box textarea {
-    width: 100%;
-    margin-bottom: 10px;
-    padding: 6px;
-    border-radius: 5px;
-    border: 1px solid #ccc;
-}
-
-input[type="file"] {
-    border: none;
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 6px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
 }
 
 /* Ana içerik */
 .main-content {
-    margin-top: 100px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+  margin-top: 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 /* Menü butonları */
 .menu-buttons {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    width: 250px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 250px;
 }
 
 .menu-button {
-    padding: 15px 25px;
-    font-size: 18px;
-    background-color: white;
-    border: 2px solid #000;
-    border-radius: 12px;
-    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
-    cursor: pointer;
-    color: #000;
-    transition: background-color 0.2s ease;
+  padding: 15px 25px;
+  font-size: 18px;
+  background-color: white;
+  border: 2px solid #000;
+  border-radius: 12px;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  color: #000;
+  transition: background-color 0.2s ease;
 }
 
 .menu-button:hover {
-    background-color: #e1f5fe;
+  background-color: #e1f5fe;
 }
 
 .menu-button:disabled {
-    background-color: #ccc;
-    cursor: not-allowed;
-    color: #666;
+  background-color: #ccc;
+  cursor: not-allowed;
+  color: #666;
 }
