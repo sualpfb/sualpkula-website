@@ -192,3 +192,19 @@ button {
   cursor: not-allowed;
   color: #666;
 }
+
+.nav-button {
+  padding: 10px 20px;
+  font-size: 14px;
+  background-color: #005792;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.nav-button:hover {
+  background-color: #003f66;
+}
+
