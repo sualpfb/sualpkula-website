@@ -3,8 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Ana Menü - Sualp Kula</title>
+  <title>Ana Menü</title>
   <link rel="stylesheet" href="styles/style.css" />
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 </head>
 <body>
 
@@ -21,8 +23,6 @@
           <input type="text" id="soyad" placeholder="Soyad" />
           <input type="text" id="uni" placeholder="Üniversite-Bölüm" />
           <textarea id="hobiler" placeholder="Hobiler"></textarea>
-          <label>Fotoğraf:</label>
-          <input type="file" id="photo-input" accept="image/*" />
           <button type="submit">Kaydet</button>
         </form>
       </div>
@@ -31,62 +31,77 @@
 
   <div class="main-content">
     <div class="menu-buttons">
-      <button class="menu-button" onclick="window.location.href='kimdir.html'">Sualp Kula</button>
-      <button class="menu-button" onclick="window.location.href='ders-notlari.html'">Ders Notları</button>
-      <button class="menu-button" disabled>Yükleniyor...</button>
+      <button onclick="window.location.href='kimdir.html'" class="menu-button">Sualp Kula</button>
+      <button onclick="window.location.href='ders-notlari.html'" class="menu-button">Ders Notları</button>
+      <button onclick="window.location.href='surpriz.html'" class="menu-button">Sürpriz</button>
     </div>
   </div>
 
   <script>
-    function toggleProfile() {
-      const box = document.getElementById("profile-box");
-      box.style.display = box.style.display === "none" || box.style.display === "" ? "block" : "none";
+    const SUPABASE_URL = "https://bvlyzxljieftbkzkdwzv.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2bHl6eGxqaWVmdGJremtkd3p2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4ODQxNTgsImV4cCI6MjA2NjQ2MDE1OH0.mJEavNb2WC_0pBpg8KJq0ABc2hquYTewoge38U5P7dw";
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let currentUserEmail = null;
+
+    async function loadProfile() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      currentUserEmail = user.email;
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", currentUserEmail)
+        .single();
+
+      if (data) {
+        document.getElementById("ad").value = data.ad || "";
+        document.getElementById("soyad").value = data.soyad || "";
+        document.getElementById("uni").value = data.uni || "";
+        document.getElementById("hobiler").value = data.hobiler || "";
+        document.getElementById("welcome-message").textContent = `Hoş geldin, ${data.ad || "Ziyaretçi"}!`;
+        document.getElementById("mini-name").textContent = data.ad || "Profil";
+      }
     }
 
-    function showWelcome() {
-      const data = JSON.parse(localStorage.getItem("userProfile"));
-      if (data?.ad) {
-        document.getElementById("welcome-message").textContent = `Hoş geldin, ${data.ad}!`;
-        document.getElementById("mini-name").textContent = data.ad;
-      }
-      if (data?.photo) {
-        document.getElementById("mini-profile").src = data.photo;
-      }
-      if (data?.ad) document.getElementById("ad").value = data.ad;
-      if (data?.soyad) document.getElementById("soyad").value = data.soyad;
-      if (data?.uni) document.getElementById("uni").value = data.uni;
-      if (data?.hobiler) document.getElementById("hobiler").value = data.hobiler;
-    }
-
-    document.getElementById("profile-form").addEventListener("submit", function(e) {
+    document.getElementById("profile-form").addEventListener("submit", async function(e) {
       e.preventDefault();
+
       const ad = document.getElementById("ad").value;
       const soyad = document.getElementById("soyad").value;
       const uni = document.getElementById("uni").value;
       const hobiler = document.getElementById("hobiler").value;
-      const photoInput = document.getElementById("photo-input");
-      const reader = new FileReader();
 
-      reader.onload = function() {
-        const photo = reader.result;
-        const userData = { ad, soyad, uni, hobiler, photo };
-        localStorage.setItem("userProfile", JSON.stringify(userData));
-        showWelcome();
-        toggleProfile();
-      };
+      if (!currentUserEmail) return alert("Giriş yapılmadı!");
 
-      if (photoInput.files[0]) {
-        reader.readAsDataURL(photoInput.files[0]);
+      const { error } = await supabase
+        .from("profiles")
+        .upsert({
+          id: currentUserEmail,
+          ad,
+          soyad,
+          uni,
+          hobiler
+        });
+
+      if (error) {
+        alert("Profil kaydedilemedi: " + error.message);
       } else {
-        const userData = { ad, soyad, uni, hobiler, photo: document.getElementById("mini-profile").src };
-        localStorage.setItem("userProfile", JSON.stringify(userData));
-        showWelcome();
+        alert("Profil kaydedildi!");
+        document.getElementById("welcome-message").textContent = `Hoş geldin, ${ad}!`;
+        document.getElementById("mini-name").textContent = ad;
         toggleProfile();
       }
     });
 
-    window.onload = showWelcome;
-  </script>
+    function toggleProfile() {
+      const box = document.getElementById("profile-box");
+      box.style.display = box.style.display === "none" ? "block" : "none";
+    }
 
+    window.onload = loadProfile;
+  </script>
 </body>
 </html>
