@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Giriş Yap - Sualp Kula</title>
   <link rel="stylesheet" href="styles/style.css" />
+
   <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <script src="scripts/auth.js" defer></script>
@@ -21,12 +22,11 @@
       <input type="password" id="password" placeholder="Şifre" required />
       <button type="submit" class="btn-pink">Giriş Yap</button>
     </form>
-    
-<div class="guest-register">
-  <button type="button" onclick="guestLogin()" class="btn-pink guest-btn">Misafir Girişi</button>
-  <button onclick="window.location.href='register.html'" class="btn-pink guest-btn">Kayıt Ol</button>
-</div>
 
+    <div class="guest-register">
+      <button type="button" onclick="guestLogin()" class="btn-pink guest-btn">Misafir Girişi</button>
+      <button type="button" onclick="window.location.href='register.html'" class="btn-pink guest-btn">Kayıt Ol</button>
+    </div>
   </div>
 
 </body>
