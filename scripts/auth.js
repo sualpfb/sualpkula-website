@@ -69,12 +69,18 @@ async function showWelcome() {
   }
 }
 
-// === PROFİL KAYDET ===
+// === PROFİL KAYDET (GELİŞMİŞ DEBUG'LU) ===
 document.getElementById("profile-form")?.addEventListener("submit", async function (e) {
   e.preventDefault();
 
-  const { data: { user } } = await supabaseClient.auth.getUser();
-  if (!user) return;
+  const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+  if (!user) {
+    console.error("Kullanıcı oturumu alınamadı:", userError);
+    alert("Giriş yapılmamış. Lütfen yeniden giriş yapın.");
+    return;
+  }
+
+  console.log("Kullanıcı ID:", user.id);
 
   const ad = document.getElementById("ad").value;
   const soyad = document.getElementById("soyad").value;
@@ -82,27 +88,35 @@ document.getElementById("profile-form")?.addEventListener("submit", async functi
   const hobiler = document.getElementById("hobiler").value;
   const photoInput = document.getElementById("photo-input");
 
-  const reader = new FileReader();
+  const userData = {
+    id: user.id,
+    ad,
+    soyad,
+    uni,
+    hobiler,
+  };
 
-  reader.onload = async function () {
-    const photo = reader.result;
+  const handleUpsert = async (dataToSave) => {
+    const { error } = await supabaseClient.from("profiles").upsert(dataToSave);
 
-    const userData = { id: user.id, ad, soyad, uni, hobiler, photo };
-
-    await supabaseClient.from("profiles").upsert(userData);
-
-    showWelcome();
-    toggleProfile();
+    if (error) {
+      console.error("Profil kaydetme hatası:", error.message);
+      alert("Kaydetme başarısız: " + error.message);
+    } else {
+      console.log("Profil başarıyla kaydedildi.");
+      showWelcome();
+      toggleProfile();
+    }
   };
 
   if (photoInput?.files?.[0]) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      userData.photo = reader.result;
+      handleUpsert(userData);
+    };
     reader.readAsDataURL(photoInput.files[0]);
   } else {
-    const userData = { id: user.id, ad, soyad, uni, hobiler };
-
-    await supabaseClient.from("profiles").upsert(userData);
-
-    showWelcome();
-    toggleProfile();
+    handleUpsert(userData);
   }
 });
