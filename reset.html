@@ -2,47 +2,26 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Yeni Şifre Belirle</title>
-  <link rel="stylesheet" href="styles/style.css">
-  <style>
-    .reset-container {
-      background: white;
-      max-width: 400px;
-      margin: 100px auto;
-      padding: 30px;
-      border-radius: 15px;
-      text-align: center;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    }
-    input, button {
-      width: 100%;
-      margin: 10px 0;
-      padding: 10px;
-    }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Şifre Sıfırla</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <script>
-    const SUPABASE_URL = "https://bvlyzxljieftbkzkdwzv.supabase.co";
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...";
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const supabase = supabase.createClient("https://bvlyzxljieftbkzkdwzv.supabase.co", "KAMU_KEYİN");
 
-    window.addEventListener("load", async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (!session) {
-        const { error: hashError } = await supabase.auth.exchangeCodeForSession(window.location.href);
-        if (hashError) alert("Oturum hatası: " + hashError.message);
+    window.onload = async () => {
+      const hash = window.location.hash;
+      if (hash.includes("type=recovery")) {
+        document.getElementById("reset-container").style.display = "block";
       }
-    });
+    };
 
-    async function resetPassword(event) {
+    async function handleReset(event) {
       event.preventDefault();
-      const newPassword = document.getElementById("new-password").value;
-
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      const password = document.getElementById("new-password").value;
+      const { data, error } = await supabase.auth.updateUser({ password });
 
       if (error) {
-        alert("Şifre güncellenemedi: " + error.message);
+        alert("Hata: " + error.message);
       } else {
         alert("Şifren başarıyla değiştirildi!");
         window.location.href = "index.html";
@@ -51,9 +30,9 @@
   </script>
 </head>
 <body>
-  <div class="reset-container">
+  <div id="reset-container" style="display: none;">
     <h2>Yeni Şifre Belirle</h2>
-    <form onsubmit="resetPassword(event)">
+    <form onsubmit="handleReset(event)">
       <input type="password" id="new-password" placeholder="Yeni şifre" required />
       <button type="submit">Şifreyi Güncelle</button>
     </form>
