@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Şifremi Unuttum</title>
+  <link rel="stylesheet" href="styles/style.css" />
+  <style>
+    .forgot-container {
+      background: white;
+      max-width: 400px;
+      margin: 100px auto;
+      padding: 30px;
+      border-radius: 15px;
+      text-align: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    input, button {
+      width: 100%;
+      margin: 10px 0;
+      padding: 10px;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="scripts/auth.js" defer></script>
+</head>
+<body>
+  <div class="forgot-container">
+    <h2>Şifremi Unuttum</h2>
+    <p>E-posta adresinizi girin, size şifre sıfırlama bağlantısı gönderelim.</p>
+    <form id="forgot-form">
+      <input type="email" id="forgot-email" placeholder="E-posta adresiniz" required />
+      <button type="submit">Şifre Sıfırlama Linki Gönder</button>
+    </form>
+    <p><a href="index.html">Girişe Dön</a></p>
+  </div>
+</body>
+</html>
