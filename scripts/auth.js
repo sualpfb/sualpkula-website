@@ -120,3 +120,19 @@ document.getElementById("profile-form")?.addEventListener("submit", async functi
     handleUpsert(userData);
   }
 });
+
+// === ŞİFRE SIFIRLAMA ===
+document.getElementById("forgot-form")?.addEventListener("submit", async function (e) {
+  e.preventDefault();
+  const email = document.getElementById("forgot-email").value;
+
+  const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+    redirectTo: "https://sualpkula.com/reset.html"  // bu sayfa birazdan eklenecek
+  });
+
+  if (error) {
+    alert("Hata: " + error.message);
+  } else {
+    alert("E-posta gönderildi! Lütfen gelen kutunu kontrol et.");
+  }
+});
