@@ -65,14 +65,15 @@ button {
   transition: background-color 0.3s ease;
 }
 
-/* Pembe Butonlar */
+/* Güncellenmiş Mavi Butonlar */
 .btn-pink {
-  background-color: #ff69b4;
+  background-color: #1877F2; /* Facebook Mavisi */
   color: white;
+  font-weight: 600;
 }
 
 .btn-pink:hover {
-  background-color: #e7549f;
+  background-color: #0f5dc8;
 }
 
 /* Misafir ve Kayıt Butonlarının kapsayıcıları */
@@ -207,4 +208,3 @@ button {
 .nav-button:hover {
   background-color: #003f66;
 }
-
