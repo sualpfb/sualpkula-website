@@ -3,24 +3,39 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Giriş Yap - Sualp Kula</title>
-  <link rel="stylesheet" href="styles/style.css" />
-  <!-- Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-  <script src="scripts/auth.js" defer></script>
-</head>
-<head>
-  <title>Sualp Kula | Kişisel Web Sitesi</title>
+  <title>Sualp Kula | Giriş Yap</title>
+  
+  <!-- SEO Etiketleri -->
   <meta name="description" content="Sualp Kula'nın kişisel web sitesi: CV, özel ders bilgileri ve iletişim.">
   <meta name="keywords" content="Sualp Kula, Matematik, Özel Ders, CV, Hacettepe, sualpkula.com">
   <meta name="author" content="Sualp Kula">
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="styles/style.css" />
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="scripts/auth.js" defer></script>
+
+  <!-- Geliştirici Konsolu Algılama -->
+  <script>
+    (function() {
+      const threshold = 160;
+      let check = setInterval(function () {
+        const widthThreshold = window.outerWidth - window.innerWidth > threshold;
+        const heightThreshold = window.outerHeight - window.innerHeight > threshold;
+        if (widthThreshold || heightThreshold) {
+          clearInterval(check);
+          alert("⚠️ Güvenlik uyarısı: Geliştirici konsolu algılandı. İzinsiz işlem girişimi loglanır.");
+        }
+      }, 1000);
+    })();
+  </script>
 </head>
 
 <body>
-
   <div class="login-container">
     <img src="images/sualp.jpg" alt="Sualp Kula" class="profile-photo" />
-
     <h2>Giriş Yap</h2>
 
     <form id="login-form">
@@ -38,21 +53,5 @@
       <a href="forgot.html">Şifreni mi unuttun?</a>
     </div>
   </div>
-
-<script>
-(function() {
-  const threshold = 160; // Konsol açıldığında ekran yüksekliği değişir
-  let check = setInterval(function () {
-    const widthThreshold = window.outerWidth - window.innerWidth > threshold;
-    const heightThreshold = window.outerHeight - window.innerHeight > threshold;
-    if (widthThreshold || heightThreshold) {
-      clearInterval(check);
-      alert("⚠️ Güvenlik uyarısı: Geliştirici konsolu algılandı. İzinsiz işlem girişimi loglanır.");
-    }
-  }, 1000);
-})();
-</script>
-
-
 </body>
 </html>
