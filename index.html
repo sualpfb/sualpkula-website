@@ -31,19 +31,19 @@
       <a href="forgot.html">Şifreni mi unuttun?</a>
     </div>
   </div>
-  <script>
-  // DevTools tespiti ve kullanıcıya uyarı
-  const devtools = () => {
-    const element = new Image();
-    Object.defineProperty(element, 'id', {
-      get: function () {
-        alert("Geliştirici konsolunu açtınız. Bu sayfa koruma altındadır. İzinsiz işlem yapılması durumunda loglar alınır.");
-      }
-    });
-    console.log(element);
-  };
 
-  setInterval(devtools, 1000);
+<script>
+(function() {
+  const threshold = 160; // Konsol açıldığında ekran yüksekliği değişir
+  let check = setInterval(function () {
+    const widthThreshold = window.outerWidth - window.innerWidth > threshold;
+    const heightThreshold = window.outerHeight - window.innerHeight > threshold;
+    if (widthThreshold || heightThreshold) {
+      clearInterval(check);
+      alert("⚠️ Güvenlik uyarısı: Geliştirici konsolu algılandı. İzinsiz işlem girişimi loglanır.");
+    }
+  }, 1000);
+})();
 </script>
 
 </body>
