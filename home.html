@@ -109,5 +109,21 @@
     window.onload = loadProfile;
   </script>
 
+<script>
+  // DevTools tespiti ve kullanıcıya uyarı
+  const devtools = () => {
+    const element = new Image();
+    Object.defineProperty(element, 'id', {
+      get: function () {
+        alert("Geliştirici konsolunu açtınız. Bu sayfa koruma altındadır. İzinsiz işlem yapılması durumunda loglar alınır.");
+      }
+    });
+    console.log(element);
+  };
+
+  setInterval(devtools, 1000);
+</script>
+
+  
 </body>
 </html>
