@@ -208,3 +208,27 @@ button {
 .nav-button:hover {
   background-color: #003f66;
 }
+
+/* Logout butonu */
+.logout-button {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-left: 15px;
+  transition: background-color 0.3s ease;
+}
+
+.logout-button:hover {
+  background-color: #c82333;
+}
+
+/* Top bar sağ taraf düzenlemesi */
+.profile-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
