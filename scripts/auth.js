@@ -127,7 +127,7 @@ document.getElementById("forgot-form")?.addEventListener("submit", async functio
   const email = document.getElementById("forgot-email").value;
 
   const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-    redirectTo: "https://sualpkula.com/reset.html"  // bu sayfa birazdan eklenecek
+    redirectTo: window.location.origin + "/reset.html"
   });
 
   if (error) {
@@ -136,3 +136,4 @@ document.getElementById("forgot-form")?.addEventListener("submit", async functio
     alert("E-posta gönderildi! Lütfen gelen kutunu kontrol et.");
   }
 });
+
