@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Panel - Sualp Kula</title>
+  <link rel="stylesheet" href="styles/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+</head>
+<body>
+  <!-- Loading Screen -->
+  <div id="loading-screen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); display: flex; justify-content: center; align-items: center; z-index: 9999;">
+    <div style="text-align: center;">
+      <div class="loading-spinner"></div>
+      <p>Admin yetkisi kontrol ediliyor...</p>
+    </div>
+  </div>
+
+  <div class="admin-container" id="admin-content" style="display: none;">
+    <!-- Admin Header -->
+    <div class="admin-header">
+      <h1>🔧 Admin Panel</h1>
+      <p>Hoş geldin, <span id="admin-name">Admin</span>!</p>
+      <div style="margin-top: 15px;">
+        <button onclick="window.location.href='home.html'" class="upload-btn" style="background: rgba(255,255,255,0.2); margin-right: 10px;">← Ana Menü</button>
+        <button onclick="logout()" class="logout-button">Çıkış</button>
+      </div>
+    </div>
+
+    <!-- PDF Yükleme Bölümü -->
+    <div class="admin-section">
+      <h3>📄 PDF Yükleme</h3>
+      <form class="upload-form" id="pdf-upload-form">
+        <input type="text" id="pdf-title" placeholder="PDF Başlığı (örn: Lineer Cebir Final)" required>
+        
+        <select id="pdf-category" required>
+          <option value="">Kategori Seçin</option>
+          <option value="matematik">Matematik</option>
+          <option value="yazilim">Yazılım</option>
+          <option value="algoritma">Algoritma</option>
+          <option value="genel">Genel</option>
+        </select>
+        
+        <textarea id="pdf-description" placeholder="PDF Açıklaması (isteğe bağlı)" rows="3"></textarea>
+        
+        <select id="pdf-visibility" required>
+          <option value="registered">Sadece Kayıtlı Kullanıcılar</option>
+          <option value="public">Herkese Açık</option>
+          <option value="private">Sadece Admin</option>
+        </select>
+        
+        <input type="file" id="pdf-file" accept=".pdf" required>
+        
+        <button type="submit" class="upload-btn">
+          <span id="upload-text">📤 PDF Yükle</span>
+          <div id="upload-loading" class="loading-spinner" style="display: none; width: 20px; height: 20px; margin: 0 auto;"></div>
+        </button>
+      </form>
+    </div>
+
+    <!-- Mevcut PDF'ler -->
+    <div class="admin-section">
+      <h3>📚 Mevcut PDF'ler</h3>
+      <div id="pdf-list" class="pdf-list">
+        <div style="text-align: center; color: #666;">
+          <div class="loading-spinner"></div>
+          <p>PDF'ler yükleniyor...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- İstatistikler -->
+    <div class="admin-section">
+      <h3>📊 Site İstatistikleri</h3>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number" id="total-pdfs">-</div>
+          <div class="stat-label">Toplam PDF</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="total-users">-</div>
+          <div class="stat-label">Kayıtlı Kullanıcı</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="total-downloads">-</div>
+          <div class="stat-label">Toplam İndirme</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Supabase Configuration
+    const SUPABASE_URL = "https://bvlyzxljieftbkzkdwzv.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2bHl6eGxqaWVmdGJremtkd3p2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4ODQxNTgsImV4cCI6MjA2NjQ2MDE1OH0.mJEavNb2WC_0pBpg8KJq0ABc2hquYTewoge38U5P7dw";
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // Admin Email Listesi
+    const ADMIN_EMAILS = [
+      "sualpkula@gmail.com",
+      "sualpkula81@gmail.com"
+    ];
+
+    let currentUser = null;
+
+    // Sayfa yüklendiğinde admin kontrolü
+    window.onload = async function() {
+      await checkAdminAccess();
+    };
+
+    // Admin yetki kontrolü
+    async function checkAdminAccess() {
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser();
+        
+        if (error || !user) {
+          redirectToLogin("Giriş yapmanız gerekiyor.");
+          return;
+        }
+
+        currentUser = user;
+
+        // Admin email kontrolü
+        if (!ADMIN_EMAILS.includes(user.email)) {
+          redirectToLogin("Bu sayfaya erişim yetkiniz yok.");
+          return;
+        }
+
+        // Admin panelini göster
+        document.getElementById("loading-screen").style.display = "none";
+        document.getElementById("admin-content").style.display = "block";
+        
+        // Admin ismini göster
+        document.getElementById("admin-name").textContent = user.email;
+        
+        // Verileri yükle
+        await loadPDFs();
+        await loadStats();
+
+      } catch (err) {
+        console.error("Admin kontrol hatası:", err);
+        redirectToLogin("Bir hata oluştu.");
+      }
+    }
+
+    function redirectToLogin(message) {
+      alert(message);
+      window.location.href = "index.html";
+    }
+
+    // PDF Yükleme
+    document.getElementById("pdf-upload-form").addEventListener("submit", async function(e) {
+      e.preventDefault();
+      
+      const title = document.getElementById("pdf-title").value;
+      const category = document.getElementById("pdf-category").value;
+      const description = document.getElementById("pdf-description").value;
+      const visibility = document.getElementById("pdf-visibility").value;
+      const fileInput = document.getElementById("pdf-file");
+      const file = fileInput.files[0];
+
+      if (!file) {
+        alert("Lütfen bir PDF dosyası seçin.");
+        return;
+      }
+
+      // Loading göster
+      document.getElementById("upload-text").style.display = "none";
+      document.getElementById("upload-loading").style.display = "block";
+
+      try {
+        // Dosya adını benzersiz yap
+        const fileName = `${Date.now()}_${file.name}`;
+        
+        // Supabase Storage'a yükle
+        const { data: storageData, error: storageError } = await supabase.storage
+          .from('pdfs')
+          .upload(fileName, file);
+
+        if (storageError) throw storageError;
+
+        // Database'e kaydet
+        const { data: dbData, error: dbError } = await supabase
+          .from('pdf_files')
+          .insert([
+            {
+              title: title,
+              category: category,
+              description: description,
+              visibility: visibility,
+              file_path: storageData.path,
+              file_name: fileName,
+              uploaded_by: currentUser.email,
+              upload_date: new Date().toISOString()
+            }
+          ]);
+
+        if (dbError) throw dbError;
+
+        alert("PDF başarıyla yüklendi!");
+        
+        // Formu temizle
+        document.getElementById("pdf-upload-form").reset();
+        
+        // PDF listesini yenile
+        await loadPDFs();
+        await loadStats();
+
+      } catch (error) {
+        console.error("PDF yükleme hatası:", error);
+        alert("PDF yüklenirken hata oluştu: " + error.message);
+      } finally {
+        // Loading gizle
+        document.getElementById("upload-text").style.display = "block";
+        document.getElementById("upload-loading").style.display = "none";
+      }
+    });
+
+    // PDF'leri yükle
+    async function loadPDFs() {
+      try {
+        const { data, error } = await supabase
+          .from('pdf_files')
+          .select('*')
+          .order('upload_date', { ascending: false });
+
+        if (error) throw error;
+
+        const pdfList = document.getElementById("pdf-list");
+        
+        if (data.length === 0) {
+          pdfList.innerHTML = '<p style="text-align: center; color: #666;">Henüz PDF yüklenmemiş.</p>';
+          return;
+        }
+
+        pdfList.innerHTML = data.map(pdf => `
+          <div class="pdf-item">
+            <div class="pdf-info">
+              <h4>${pdf.title}</h4>
+              <p><strong>Kategori:</strong> ${pdf.category} | <strong>Görünürlük:</strong> ${pdf.visibility}</p>
+              <p><strong>Yüklenme:</strong> ${new Date(pdf.upload_date).toLocaleDateString('tr-TR')}</p>
+              ${pdf.description ? `<p><em>${pdf.description}</em></p>` : ''}
+            </div>
+            <div class="pdf-actions">
+              <button class="btn-edit" onclick="editPDF(${pdf.id})">Düzenle</button>
+              <button class="btn-delete" onclick="deletePDF(${pdf.id}, '${pdf.file_path}')">Sil</button>
+            </div>
+          </div>
+        `).join('');
+
+      } catch (error) {
+        console.error("PDF'ler yüklenirken hata:", error);
+        document.getElementById("pdf-list").innerHTML = '<p style="color: red;">PDF\'ler yüklenirken hata oluştu.</p>';
+      }
+    }
+
+    // İstatistikleri yükle
+    async function loadStats() {
+      try {
+        // PDF sayısı
+        const { data: pdfData, error: pdfError } = await supabase
+          .from('pdf_files')
+          .select('id');
+        
+        if (!pdfError) {
+          document.getElementById("total-pdfs").textContent = pdfData.length;
+        }
+
+        // Kullanıcı sayısı
+        const { data: userData, error: userError } = await supabase
+          .from('profiles')
+          .select('id');
+        
+        if (!userError) {
+          document.getElementById("total-users").textContent = userData.length;
+        }
+
+        // İndirme sayısı (şimdilik sabit)
+        document.getElementById("total-downloads").textContent = "0";
+
+      } catch (error) {
+        console.error("İstatistik yükleme hatası:", error);
+      }
+    }
+
+    // PDF silme
+    async function deletePDF(pdfId, filePath) {
+      if (!confirm("Bu PDF'i silmek istediğinize emin misiniz?")) return;
+
+      try {
+        // Storage'dan sil
+        const { error: storageError } = await supabase.storage
+          .from('pdfs')
+          .remove([filePath]);
+
+        // Database'den sil
+        const { error: dbError } = await supabase
+          .from('pdf_files')
+          .delete()
+          .eq('id', pdfId);
+
+        if (dbError) throw dbError;
+
+        alert("PDF başarıyla silindi!");
+        await loadPDFs();
+        await loadStats();
+
+      } catch (error) {
+        console.error("PDF silme hatası:", error);
+        alert("PDF silinirken hata oluştu: " + error.message);
+      }
+    }
+
+    // PDF düzenleme (basit versiyon)
+    function editPDF(pdfId) {
+      alert("PDF düzenleme özelliği yakında eklenecek!");
+    }
+
+    // Logout fonksiyonu
+    async function logout() {
+      const confirmLogout = confirm("Çıkış yapmak istediğinize emin misiniz?");
+      if (!confirmLogout) return;
+      
+      try {
+        await supabase.auth.signOut();
+        sessionStorage.clear();
+        localStorage.clear();
+        window.location.href = "index.html";
+      } catch (error) {
+        console.error("Logout hatası:", error);
+        window.location.href = "index.html";
+      }
+    }
+  </script>
+</body>
+</html>
