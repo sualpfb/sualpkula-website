@@ -109,20 +109,6 @@
     window.onload = loadProfile;
   </script>
 
-<script>
-(function() {
-  const threshold = 160; // Konsol açıldığında ekran yüksekliği değişir
-  let check = setInterval(function () {
-    const widthThreshold = window.outerWidth - window.innerWidth > threshold;
-    const heightThreshold = window.outerHeight - window.innerHeight > threshold;
-    if (widthThreshold || heightThreshold) {
-      clearInterval(check);
-      alert("⚠️ Güvenlik uyarısı: Geliştirici konsolu algılandı. İzinsiz işlem girişimi loglanır.");
-    }
-  }, 1000);
-})();
-</script>
-
-
 </body>
 </html>
+
