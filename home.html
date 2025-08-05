@@ -17,6 +17,7 @@
         <img src="images/sualp.jpg" id="mini-profile" class="profile-img-small" />
         <span id="mini-name">Profil</span>
       </div>
+      <button onclick="logout()" class="logout-button">Çıkış</button>
       <div id="profile-box">
         <form id="profile-form">
           <input type="text" id="ad" placeholder="Ad" />
@@ -106,9 +107,62 @@
       box.style.display = box.style.display === "none" ? "block" : "none";
     }
 
-    window.onload = loadProfile;
+    // === LOGOUT FONKSİYONU ===
+    async function logout() {
+      const confirmLogout = confirm("Çıkış yapmak istediğinize emin misiniz?");
+      
+      if (!confirmLogout) return;
+      
+      try {
+        // Supabase'den çıkış yap
+        const { error } = await supabase.auth.signOut();
+        
+        if (error) {
+          console.error("Logout hatası:", error.message);
+          alert("Çıkış yapılırken hata oluştu: " + error.message);
+          return;
+        }
+        
+        // Session storage'ı temizle
+        sessionStorage.removeItem("user");
+        sessionStorage.clear();
+        
+        // Local storage'ı da temizle (varsa)
+        localStorage.clear();
+        
+        alert("Başarıyla çıkış yaptınız!");
+        
+        // Giriş sayfasına yönlendir
+        window.location.href = "index.html";
+        
+      } catch (err) {
+        console.error("Beklenmeyen logout hatası:", err);
+        alert("Beklenmeyen bir hata oluştu. Sayfa yenilenecek.");
+        window.location.reload();
+      }
+    }
+
+    // === SAYFA YÜKLENDİĞİNDE SESSION KONTROLÜ ===
+    async function checkSession() {
+      const sessionUser = sessionStorage.getItem("user");
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // Ne session var ne de supabase user'ı varsa giriş sayfasına yönlendir
+      if (!sessionUser && !user) {
+        alert("Oturum süresi dolmuş. Lütfen tekrar giriş yapın.");
+        window.location.href = "index.html";
+        return false;
+      }
+      return true;
+    }
+
+    window.onload = async function() {
+      const sessionValid = await checkSession();
+      if (sessionValid) {
+        loadProfile();
+      }
+    };
   </script>
 
 </body>
 </html>
-
