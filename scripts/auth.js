@@ -137,3 +137,58 @@ document.getElementById("forgot-form")?.addEventListener("submit", async functio
   }
 });
 
+// === LOGOUT FONKSİYONU ===
+async function logout() {
+  const confirmLogout = confirm("Çıkış yapmak istediğinize emin misiniz?");
+  
+  if (!confirmLogout) return;
+  
+  try {
+    // Supabase'den çıkış yap
+    const { error } = await supabaseClient.auth.signOut();
+    
+    if (error) {
+      console.error("Logout hatası:", error.message);
+      alert("Çıkış yapılırken hata oluştu: " + error.message);
+      return;
+    }
+    
+    // Session storage'ı temizle
+    sessionStorage.removeItem("user");
+    sessionStorage.clear(); // Tüm session'ı temizle
+    
+    // Local storage'ı da temizle (varsa)
+    localStorage.clear();
+    
+    alert("Başarıyla çıkış yaptınız!");
+    
+    // Giriş sayfasına yönlendir
+    window.location.href = "index.html";
+    
+  } catch (err) {
+    console.error("Beklenmeyen logout hatası:", err);
+    alert("Beklenmeyen bir hata oluştu. Sayfa yenilenecek.");
+    window.location.reload();
+  }
+}
+
+// === SAYFA YÜKLENDİĞİNDE SESSION KONTROLÜ ===
+async function checkSession() {
+  // Eğer home.html'deysek session kontrolü yap
+  if (window.location.pathname.includes('home.html')) {
+    const sessionUser = sessionStorage.getItem("user");
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    
+    // Ne session var ne de supabase user'ı varsa giriş sayfasına yönlendir
+    if (!sessionUser && !user) {
+      alert("Oturum süresi dolmuş. Lütfen tekrar giriş yapın.");
+      window.location.href = "index.html";
+      return false;
+    }
+  }
+  return true;
+}
+
+// Sayfa yüklendiğinde session kontrolü yap
+window.addEventListener('load', checkSession);
+
