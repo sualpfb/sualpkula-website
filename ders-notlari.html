@@ -1,26 +1,295 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8">
-  <title>Ders Notları</title>
-  <link rel="stylesheet" href="styles/style.css">
-  <script>
-    const user = sessionStorage.getItem("user");
-    if (user !== "admin") {
-      alert("Bu sayfaya yalnızca giriş yapmış kullanıcılar erişebilir.");
-      window.location.href = "index.html";
-    }
-  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ders Notları - Sualp Kula</title>
+  <link rel="stylesheet" href="styles/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 </head>
 <body>
-  <div class="content-box">
-    <h1>Ders Notları</h1>
-    <ul>
-      <li><a href="#">Lineer Cebir - Final Notları</a></li>
-      <li><a href="#">Yapay Zeka - Özet</a></li>
-      <li><a href="#">Matematiksel Mantık - Örnek Sorular</a></li>
-    </ul>
-    <a href="home.html">← Ana Menüye Dön</a>
+  <!-- Loading Screen -->
+  <div id="loading-screen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); display: flex; justify-content: center; align-items: center; z-index: 9999;">
+    <div style="text-align: center;">
+      <div class="loading-spinner"></div>
+      <p>PDF'ler yükleniyor...</p>
+    </div>
   </div>
+
+  <div class="top-bar">
+    <div class="welcome-text">📚 Ders Notları</div>
+    <div class="profile-section">
+      <button onclick="window.location.href='home.html'" class="nav-button">← Ana Menü</button>
+      <button onclick="logout()" class="logout-button">Çıkış</button>
+    </div>
+  </div>
+
+  <div class="main-content" id="main-content" style="display: none;">
+    
+    <!-- Kategori Filtreleri -->
+    <div class="filter-section">
+      <h3>🔍 Kategori Filtresi</h3>
+      <div class="filter-buttons">
+        <button class="filter-btn active" data-category="all">Tümü</button>
+        <button class="filter-btn" data-category="matematik">Matematik</button>
+        <button class="filter-btn" data-category="yazilim">Yazılım</button>
+        <button class="filter-btn" data-category="algoritma">Algoritma</button>
+        <button class="filter-btn" data-category="genel">Genel</button>
+      </div>
+    </div>
+
+    <!-- PDF Listesi -->
+    <div class="content-box">
+      <div id="pdf-container">
+        <div class="loading-message">
+          <div class="loading-spinner"></div>
+          <p>PDF'ler yükleniyor...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- İstatistikler -->
+    <div class="stats-section">
+      <div class="stat-card">
+        <div class="stat-number" id="total-pdfs">0</div>
+        <div class="stat-label">Toplam PDF</div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const SUPABASE_URL = "https://bvlyzxljieftbkzkdwzv.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2bHl6eGxqaWVmdGJremtkd3p2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4ODQxNTgsImV4cCI6MjA2NjQ2MDE1OH0.mJEavNb2WC_0pBpg8KJq0ABc2hquYTewoge38U5P7dw";
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let currentUser = null;
+    let allPDFs = [];
+    let currentCategory = 'all';
+
+    // Sayfa yüklendiğinde
+    window.onload = async function() {
+      await checkSession();
+      await loadPDFs();
+      setupFilters();
+      
+      // Loading screen'i gizle
+      document.getElementById("loading-screen").style.display = "none";
+      document.getElementById("main-content").style.display = "block";
+    };
+
+    // Session kontrolü
+    async function checkSession() {
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser();
+        
+        if (error || !user) {
+          alert("Bu sayfaya erişmek için giriş yapmanız gerekiyor.");
+          window.location.href = "index.html";
+          return;
+        }
+        
+        currentUser = user;
+      } catch (err) {
+        console.error("Session kontrol hatası:", err);
+        alert("Bir hata oluştu. Lütfen tekrar giriş yapın.");
+        window.location.href = "index.html";
+      }
+    }
+
+    // PDF'leri yükle
+    async function loadPDFs() {
+      try {
+        const { data, error } = await supabase
+          .from('pdf_files')
+          .select('*')
+          .in('visibility', ['public', 'registered'])
+          .order('upload_date', { ascending: false });
+
+        if (error) {
+          throw error;
+        }
+
+        allPDFs = data || [];
+        renderPDFs(allPDFs);
+        updateStats();
+
+      } catch (error) {
+        console.error("PDF yükleme hatası:", error);
+        document.getElementById("pdf-container").innerHTML = `
+          <div style="text-align: center; color: #e74c3c; padding: 50px;">
+            <h3>❌ PDF'ler yüklenirken hata oluştu</h3>
+            <p>${error.message}</p>
+            <button onclick="loadPDFs()" class="nav-button">🔄 Tekrar Dene</button>
+          </div>
+        `;
+      }
+    }
+
+    // PDF'leri render et
+    function renderPDFs(pdfs) {
+      const container = document.getElementById("pdf-container");
+      
+      if (!pdfs || pdfs.length === 0) {
+        container.innerHTML = `
+          <div style="text-align: center; padding: 50px; color: #666;">
+            <h3>📁 Henüz PDF bulunmuyor</h3>
+            <p>Bu kategoride PDF bulunmamaktadır.</p>
+          </div>
+        `;
+        return;
+      }
+
+      const pdfHTML = pdfs.map(pdf => `
+        <div class="pdf-card" data-category="${pdf.category}">
+          <div class="pdf-header">
+            <h4>📄 ${pdf.title}</h4>
+            <span class="pdf-category">${getCategoryName(pdf.category)}</span>
+          </div>
+          
+          <div class="pdf-info">
+            ${pdf.description ? `<p class="pdf-description">${pdf.description}</p>` : ''}
+            <div class="pdf-meta">
+              <span>📅 ${formatDate(pdf.upload_date)}</span>
+              <span>👤 ${pdf.uploaded_by}</span>
+              <span>⬇️ ${pdf.download_count || 0} indirme</span>
+            </div>
+          </div>
+          
+          <div class="pdf-actions">
+            <button onclick="viewPDF('${pdf.file_path}', '${pdf.title}')" class="btn-view">
+              👁️ Görüntüle
+            </button>
+            <button onclick="downloadPDF('${pdf.file_path}', '${pdf.title}', ${pdf.id})" class="btn-download">
+              ⬇️ İndir
+            </button>
+          </div>
+        </div>
+      `).join('');
+
+      container.innerHTML = pdfHTML;
+    }
+
+    // Kategori adlarını Türkçe yap
+    function getCategoryName(category) {
+      const names = {
+        'matematik': 'Matematik',
+        'yazilim': 'Yazılım', 
+        'algoritma': 'Algoritma',
+        'genel': 'Genel'
+      };
+      return names[category] || category;
+    }
+
+    // Tarihi formatla
+    function formatDate(dateString) {
+      if (!dateString) return 'Tarih yok';
+      return new Date(dateString).toLocaleDateString('tr-TR');
+    }
+
+    // PDF görüntüle
+    async function viewPDF(filePath, title) {
+      try {
+        const { data, error } = await supabase.storage
+          .from('pdfs')
+          .createSignedUrl(filePath, 3600); // 1 saat geçerli
+
+        if (error) throw error;
+
+        // Yeni pencerede aç
+        window.open(data.signedUrl, '_blank');
+        
+      } catch (error) {
+        console.error("PDF görüntüleme hatası:", error);
+        alert("PDF görüntülenirken hata oluştu: " + error.message);
+      }
+    }
+
+    // PDF indir
+    async function downloadPDF(filePath, title, pdfId) {
+      try {
+        const { data, error } = await supabase.storage
+          .from('pdfs')
+          .download(filePath);
+
+        if (error) throw error;
+
+        // Dosyayı indir
+        const url = URL.createObjectURL(data);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${title}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        // İndirme sayısını artır
+        await incrementDownloadCount(pdfId);
+        
+      } catch (error) {
+        console.error("PDF indirme hatası:", error);
+        alert("PDF indirilirken hata oluştu: " + error.message);
+      }
+    }
+
+    // İndirme sayısını artır
+    async function incrementDownloadCount(pdfId) {
+      try {
+        await supabase.rpc('increment_download_count', { pdf_id: pdfId });
+      } catch (error) {
+        console.error("İndirme sayısı güncellenemedi:", error);
+      }
+    }
+
+    // Filtreleri ayarla
+    function setupFilters() {
+      const filterButtons = document.querySelectorAll('.filter-btn');
+      
+      filterButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          // Aktif butonu değiştir
+          filterButtons.forEach(btn => btn.classList.remove('active'));
+          this.classList.add('active');
+          
+          // Kategoriyi filtrele
+          currentCategory = this.dataset.category;
+          filterPDFs();
+        });
+      });
+    }
+
+    // PDF'leri filtrele
+    function filterPDFs() {
+      if (currentCategory === 'all') {
+        renderPDFs(allPDFs);
+      } else {
+        const filteredPDFs = allPDFs.filter(pdf => pdf.category === currentCategory);
+        renderPDFs(filteredPDFs);
+      }
+    }
+
+    // İstatistikleri güncelle
+    function updateStats() {
+      document.getElementById('total-pdfs').textContent = allPDFs.length;
+    }
+
+    // Logout fonksiyonu
+    async function logout() {
+      const confirmLogout = confirm("Çıkış yapmak istediğinize emin misiniz?");
+      if (!confirmLogout) return;
+      
+      try {
+        await supabase.auth.signOut();
+        sessionStorage.clear();
+        localStorage.clear();
+        window.location.href = "index.html";
+      } catch (error) {
+        console.error("Logout hatası:", error);
+        window.location.href = "index.html";
+      }
+    }
+  </script>
+
 </body>
 </html>
