@@ -67,11 +67,11 @@
         document.getElementById("admin-button").style.display = "block";
       }
 
-      // Profil bilgilerini getir
+      // Profil bilgilerini getir - ID olarak email kullan
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
-        .eq("id", user.id)
+        .eq("id", user.email)  // Email'i ID olarak kullan
         .single();
 
       if (error) {
@@ -118,14 +118,11 @@
         const { error } = await supabase
           .from("profiles")
           .upsert({
-            id: currentUser.id,
-            email: currentUser.email,
-            full_name: `${ad} ${soyad}`.trim(),
+            id: currentUser.email,  // Email'i ID olarak kullan
             ad,
             soyad,
             uni,
-            hobiler,
-            updated_at: new Date().toISOString()
+            hobiler
           });
 
         if (error) {
