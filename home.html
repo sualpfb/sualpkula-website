@@ -44,20 +44,22 @@
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2bHl6eGxqaWVmdGJremtkd3p2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4ODQxNTgsImV4cCI6MjA2NjQ2MDE1OH0.mJEavNb2WC_0pBpg8KJq0ABc2hquYTewoge38U5P7dw";
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // Admin Email Listesi
+    // Admin Email Listesi - admin.html ile aynı
     const ADMIN_EMAILS = [
       "sualpkula@gmail.com",
       "sualpkula81@gmail.com"
     ];
 
-    let currentUserEmail = null;
     let currentUser = null;
 
+    // Profil bilgilerini yükle
     async function loadProfile() {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) return;
+      if (userError || !user) {
+        console.warn("Kullanıcı bulunamadı:", userError?.message);
+        return;
+      }
 
-      currentUserEmail = user.email;
       currentUser = user;
 
       // Admin butonu kontrolü
@@ -65,14 +67,18 @@
         document.getElementById("admin-button").style.display = "block";
       }
 
+      // Profil bilgilerini getir
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
-        .eq("id", currentUserEmail)
+        .eq("id", user.id)
         .single();
 
       if (error) {
         console.warn("Profil yüklenemedi:", error.message);
+        // İlk kez giriş yapan kullanıcı için varsayılan değerler
+        document.getElementById("welcome-message").textContent = `Hoş geldin, ${user.email}!`;
+        document.getElementById("mini-name").textContent = "Profil";
         return;
       }
 
@@ -81,44 +87,73 @@
         document.getElementById("soyad").value = data.soyad || "";
         document.getElementById("uni").value = data.uni || "";
         document.getElementById("hobiler").value = data.hobiler || "";
-        document.getElementById("welcome-message").textContent = `Hoş geldin, ${data.ad || "Ziyaretçi"}!`;
+        
+        const displayName = data.ad || user.email.split('@')[0];
+        document.getElementById("welcome-message").textContent = `Hoş geldin, ${displayName}!`;
         document.getElementById("mini-name").textContent = data.ad || "Profil";
       }
     }
 
+    // Profil formu submit
     document.getElementById("profile-form").addEventListener("submit", async function (e) {
       e.preventDefault();
 
-      if (!currentUserEmail) return alert("Giriş yapılmadı!");
+      if (!currentUser) {
+        alert("Giriş yapılmadı!");
+        return;
+      }
 
-      const ad = document.getElementById("ad").value;
-      const soyad = document.getElementById("soyad").value;
-      const uni = document.getElementById("uni").value;
-      const hobiler = document.getElementById("hobiler").value;
+      const ad = document.getElementById("ad").value.trim();
+      const soyad = document.getElementById("soyad").value.trim();
+      const uni = document.getElementById("uni").value.trim();
+      const hobiler = document.getElementById("hobiler").value.trim();
 
-      const { error } = await supabase
-        .from("profiles")
-        .upsert({
-          id: currentUserEmail,
-          ad,
-          soyad,
-          uni,
-          hobiler
-        });
+      // Buton loading state
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      const originalText = submitBtn.textContent;
+      submitBtn.textContent = "Kaydediliyor...";
+      submitBtn.disabled = true;
 
-      if (error) {
-        alert("Profil kaydedilemedi: " + error.message);
-      } else {
-        alert("Profil kaydedildi!");
-        document.getElementById("welcome-message").textContent = `Hoş geldin, ${ad}!`;
-        document.getElementById("mini-name").textContent = ad;
+      try {
+        const { error } = await supabase
+          .from("profiles")
+          .upsert({
+            id: currentUser.id,
+            email: currentUser.email,
+            full_name: `${ad} ${soyad}`.trim(),
+            ad,
+            soyad,
+            uni,
+            hobiler,
+            updated_at: new Date().toISOString()
+          });
+
+        if (error) {
+          throw error;
+        }
+
+        alert("Profil başarıyla kaydedildi!");
+        
+        const displayName = ad || currentUser.email.split('@')[0];
+        document.getElementById("welcome-message").textContent = `Hoş geldin, ${displayName}!`;
+        document.getElementById("mini-name").textContent = ad || "Profil";
+        
         toggleProfile();
+
+      } catch (error) {
+        console.error("Profil kaydetme hatası:", error);
+        alert("Profil kaydedilemedi: " + error.message);
+      } finally {
+        // Buton state'ini geri al
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
       }
     });
 
+    // Profil kutusunu aç/kapat
     function toggleProfile() {
       const box = document.getElementById("profile-box");
-      box.style.display = box.style.display === "none" ? "block" : "none";
+      box.style.display = box.style.display === "none" || box.style.display === "" ? "block" : "none";
     }
 
     // Admin panel erişim kontrolü
@@ -130,7 +165,7 @@
       }
     }
 
-    // === LOGOUT FONKSİYONU ===
+    // Çıkış fonksiyonu
     async function logout() {
       const confirmLogout = confirm("Çıkış yapmak istediğinize emin misiniz?");
       
@@ -147,10 +182,7 @@
         }
         
         // Session storage'ı temizle
-        sessionStorage.removeItem("user");
         sessionStorage.clear();
-        
-        // Local storage'ı da temizle (varsa)
         localStorage.clear();
         
         alert("Başarıyla çıkış yaptınız!");
@@ -165,28 +197,49 @@
       }
     }
 
-    // === SAYFA YÜKLENDİĞİNDE SESSION KONTROLÜ ===
+    // Session kontrolü
     async function checkSession() {
-      const sessionUser = sessionStorage.getItem("user");
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      // Ne session var ne de supabase user'ı varsa giriş sayfasına yönlendir
-      if (!sessionUser && !user) {
-        alert("Oturum süresi dolmuş. Lütfen tekrar giriş yapın.");
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser();
+        
+        if (error) {
+          console.error("Session kontrol hatası:", error);
+          return false;
+        }
+        
+        if (!user) {
+          alert("Oturum süresi dolmuş. Lütfen tekrar giriş yapın.");
+          window.location.href = "index.html";
+          return false;
+        }
+        
+        return true;
+      } catch (err) {
+        console.error("Session kontrol kritik hatası:", err);
+        alert("Bir hata oluştu. Lütfen tekrar giriş yapın.");
         window.location.href = "index.html";
         return false;
       }
-      return true;
     }
 
+    // Sayfa yüklendiğinde çalışacak fonksiyon
     window.onload = async function() {
       const sessionValid = await checkSession();
       if (sessionValid) {
-        loadProfile();
+        await loadProfile();
       }
     };
+
+    // Profile kutusunu kapatmak için dışarı tıklanınca
+    document.addEventListener('click', function(event) {
+      const profileBox = document.getElementById('profile-box');
+      const profileButton = document.querySelector('.profile-button');
+      
+      if (!profileButton.contains(event.target) && !profileBox.contains(event.target)) {
+        profileBox.style.display = 'none';
+      }
+    });
   </script>
 
 </body>
 </html>
-
