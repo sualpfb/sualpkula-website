@@ -7,9 +7,9 @@
   <link rel="stylesheet" href="styles/style.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   
-  <!-- Koruma Sistemi CSS -->
+  <!-- Hafifletilmiş koruma sistemi CSS -->
   <style>
-    /* Temel koruma stilleri */
+    /* Temel koruma stilleri - daha az kısıtlayıcı */
     body {
         user-select: none;
         -webkit-user-select: none;
@@ -18,48 +18,42 @@
         -webkit-touch-callout: none;
     }
 
-    /* Screenshot uyarı modalı */
-    .screenshot-warning {
+    /* Uyarı modalı - daha dostane */
+    .protection-warning {
         position: fixed;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        background: linear-gradient(45deg, #ff4444, #cc0000);
-        color: white;
-        padding: 25px;
+        background: linear-gradient(45deg, #ffc107, #fd7e14);
+        color: #212529;
+        padding: 20px;
         border-radius: 15px;
         z-index: 9999;
         display: none;
-        box-shadow: 0 8px 25px rgba(255, 68, 68, 0.4);
+        box-shadow: 0 8px 25px rgba(255, 193, 7, 0.4);
         text-align: center;
         font-weight: bold;
-        max-width: 300px;
+        max-width: 320px;
     }
 
-    /* Blur efekti */
-    .blur-content {
-        filter: blur(10px);
-        transition: filter 0.3s ease;
-    }
-
-    /* PDF viewer koruması */
-    .protected-pdf-viewer {
+    /* PDF viewer iyileştirmesi */
+    .pdf-viewer-wrapper {
         position: relative;
-        overflow: hidden;
-        border-radius: 10px;
         background: #f8f9fa;
+        border-radius: 10px;
         border: 2px solid #e9ecef;
+        overflow: hidden;
     }
 
-    .pdf-protection-layer {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        z-index: 5;
-        background: transparent;
-        pointer-events: none;
+    .pdf-viewer-controls {
+        background: #fff;
+        padding: 10px;
+        border-bottom: 1px solid #dee2e6;
+        display: flex;
+        justify-content: between;
+        align-items: center;
+        font-size: 14px;
+        color: #666;
     }
 
     /* İndirme butonu devre dışı stili */
@@ -69,16 +63,57 @@
         opacity: 0.6;
     }
 
-    /* Koruma uyarı mesajı */
+    /* Koruma bildirimi - daha az dikkat çekici */
     .protection-notice {
-        background: linear-gradient(45deg, #ffc107, #fd7e14);
-        color: #212529;
-        padding: 15px;
-        border-radius: 10px;
-        margin: 20px 0;
+        background: linear-gradient(45deg, #e3f2fd, #bbdefb);
+        color: #1976d2;
+        padding: 12px;
+        border-radius: 8px;
+        margin: 15px 0;
         text-align: center;
-        font-weight: bold;
-        box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3);
+        font-size: 14px;
+        box-shadow: 0 2px 8px rgba(25, 118, 210, 0.1);
+    }
+
+    /* Mobil uyumluluk */
+    @media (max-width: 768px) {
+        .protection-warning {
+            width: 90%;
+            max-width: none;
+        }
+        
+        .pdf-viewer-controls {
+            font-size: 12px;
+            padding: 8px;
+        }
+    }
+
+    /* PDF modal geliştirilmiş */
+    .pdf-modal-content {
+        position: relative;
+        width: 95%;
+        height: 90%;
+        margin: 2.5% auto;
+        background: white;
+        border-radius: 10px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .pdf-modal-header {
+        padding: 15px 20px;
+        border-bottom: 1px solid #dee2e6;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #f8f9fa;
+        border-radius: 10px 10px 0 0;
+    }
+
+    .pdf-modal-body {
+        flex: 1;
+        padding: 10px;
+        overflow: hidden;
     }
   </style>
 </head>
@@ -91,12 +126,12 @@
     </div>
   </div>
 
-  <!-- Screenshot uyarı modalı -->
-  <div id="screenshot-warning" class="screenshot-warning">
-      <h3>⚠️ GÜVENLİK UYARISI!</h3>
-      <p>🚫 Bu site ekran görüntüsü almayı yasaklar!</p>
-      <p>📱 İçerik korunmaktadır.</p>
-      <p><small>Girişim sayısı: <span id="attempt-counter">0</span></small></p>
+  <!-- Hafifletilmiş uyarı modalı -->
+  <div id="protection-warning" class="protection-warning">
+      <h3>📋 BİLGİLENDİRME</h3>
+      <p>Bu içerik telif hakkı koruması altındadır.</p>
+      <p>📱 Screenshot alma hakkınız var, ancak içeriği paylaşmayınız.</p>
+      <p><small>Bu bir hatırlatmadır.</small></p>
   </div>
 
   <div class="top-bar">
@@ -109,10 +144,9 @@
 
   <div class="main-content" id="main-content" style="display: none;">
     
-    <!-- Koruma Bildirimi -->
+    <!-- Koruma Bildirimi - Daha hafif -->
     <div class="protection-notice">
-        🔒 <strong>KORUNAN İÇERİK:</strong> Bu sayfadaki PDF'ler telif hakkı koruması altındadır. 
-        Ekran görüntüsü almak ve içerik kopyalamak yasaktır.
+        📄 <strong>TELİF HAKKI:</strong> Bu PDF'ler eğitim amaçlıdır. İndirme yasak, ancak görüntüleme serbesttir.
     </div>
 
     <!-- Kategori Filtreleri -->
@@ -145,12 +179,17 @@
       </div>
     </div>
 
-    <!-- PDF Modal -->
-    <div id="pdf-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000;">
-      <div style="position: relative; width: 90%; height: 90%; margin: 5% auto; background: white; border-radius: 10px;">
-        <button onclick="closePDFModal()" style="position: absolute; top: 10px; right: 10px; z-index: 1001; background: #dc3545; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer;">✖ Kapat</button>
-        <div id="pdf-viewer-container" style="width: 100%; height: 100%; padding: 50px 20px 20px;">
-          <!-- PDF buraya yüklenecek -->
+    <!-- Geliştirilmiş PDF Modal -->
+    <div id="pdf-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000;">
+      <div class="pdf-modal-content">
+        <div class="pdf-modal-header">
+          <h4 id="pdf-modal-title">PDF Görüntüleyici</h4>
+          <button onclick="closePDFModal()" style="background: #dc3545; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer;">✖ Kapat</button>
+        </div>
+        <div class="pdf-modal-body">
+          <div id="pdf-viewer-container" style="width: 100%; height: 100%;">
+            <!-- PDF buraya yüklenecek -->
+          </div>
         </div>
       </div>
     </div>
@@ -166,205 +205,93 @@
     let allPDFs = [];
     let currentCategory = 'all';
 
-    // === KORUMA SİSTEMİ ===
-    class SiteProtection {
+    // === HAFİFLETİLMİŞ KORUMA SİSTEMİ ===
+    class LightProtection {
         constructor() {
-            this.screenshotAttempts = 0;
-            this.maxAttempts = 5;
+            this.warningCount = 0;
             this.init();
         }
 
         init() {
-            this.setupScreenshotProtection();
-            this.setupKeyboardProtection();
-            this.setupContextMenuProtection();
-            this.setupDragProtection();
-            this.setupMobileProtection();
-            this.setupDevToolsDetection();
-            this.showConsoleWarning();
+            this.setupBasicProtection();
+            this.setupDownloadProtection();
+            this.showConsoleMessage();
         }
 
-        // Ekran görüntüsü koruma
-        setupScreenshotProtection() {
-            document.addEventListener('visibilitychange', () => {
-                if (document.hidden) {
-                    this.handleSuspiciousActivity('📱 Screenshot girişimi algılandı!');
-                }
+        // Temel koruma - sadece uyarı
+        setupBasicProtection() {
+            // Sağ tık - sadece uyarı
+            document.addEventListener('contextmenu', (e) => {
+                this.showWarning('Sağ tık menüsü kullanıldı');
+                // e.preventDefault(); - Artık engellemiyor
             });
 
-            window.addEventListener('pagehide', () => {
-                this.handleSuspiciousActivity('📱 Mobil screenshot girişimi!');
-            });
-        }
-
-        // Klavye koruma
-        setupKeyboardProtection() {
+            // Temel tuş kombinasyonları - sadece uyarı
             document.addEventListener('keydown', (e) => {
-                // Print Screen
-                if (e.keyCode === 44) {
-                    e.preventDefault();
-                    this.handleSuspiciousActivity('🖨️ Print Screen engellendi!');
-                    return false;
-                }
-                
-                // F12, Ctrl+Shift+I (Dev Tools)
-                if (e.keyCode === 123 || 
-                    (e.ctrlKey && e.shiftKey && e.keyCode === 73)) {
-                    e.preventDefault();
-                    this.handleSuspiciousActivity('🔧 Geliştirici araçları engellendi!');
-                    return false;
-                }
-
-                // Ctrl+U (Kaynak görüntüle)
-                if (e.ctrlKey && e.keyCode === 85) {
-                    e.preventDefault();
-                    this.handleSuspiciousActivity('📝 Kaynak kodu görüntüleme engellendi!');
-                    return false;
-                }
-
-                // Ctrl+S (Sayfa kaydet)
+                // Ctrl+S (Kaydet)
                 if (e.ctrlKey && e.keyCode === 83) {
                     e.preventDefault();
-                    this.handleSuspiciousActivity('💾 Sayfa kaydetme engellendi!');
+                    this.showWarning('Sayfa kaydetme girişimi algılandı');
                     return false;
                 }
 
                 // Ctrl+P (Yazdır)
                 if (e.ctrlKey && e.keyCode === 80) {
                     e.preventDefault();
-                    this.handleSuspiciousActivity('🖨️ Yazdırma engellendi!');
+                    this.showWarning('Yazdırma girişimi algılandı');
                     return false;
                 }
 
-                // Ctrl+A (Tümünü seç)
-                if (e.ctrlKey && e.keyCode === 65) {
-                    e.preventDefault();
-                    this.handleSuspiciousActivity('📋 İçerik seçimi engellendi!');
-                    return false;
+                // F12 ve Ctrl+Shift+I - sadece uyarı, engellemiyoruz
+                if (e.keyCode === 123 || (e.ctrlKey && e.shiftKey && e.keyCode === 73)) {
+                    this.showWarning('Geliştirici araçları açıldı');
+                }
+
+                // Print Screen - sadece uyarı
+                if (e.keyCode === 44) {
+                    this.showWarning('Ekran görüntüsü alındı - İçerik paylaşmayınız');
                 }
             });
-        }
 
-        // Sağ tık koruma
-        setupContextMenuProtection() {
-            document.addEventListener('contextmenu', (e) => {
-                e.preventDefault();
-                this.handleSuspiciousActivity('🖱️ Sağ tık menüsü engellendi!');
-                return false;
-            });
-        }
-
-        // Sürükle bırak koruma
-        setupDragProtection() {
-            document.addEventListener('dragstart', (e) => {
-                e.preventDefault();
-                this.handleSuspiciousActivity('🔄 İçerik sürükleme engellendi!');
-                return false;
-            });
-
+            // Metin seçimi - İzin ver ama uyar
             document.addEventListener('selectstart', (e) => {
-                e.preventDefault();
-                return false;
+                if (e.target.closest('.pdf-viewer-wrapper')) {
+                    this.showWarning('PDF içeriği seçildi - Kopyalama yasaktır');
+                }
             });
         }
 
-        // Mobil koruma
-        setupMobileProtection() {
-            if (/Android/i.test(navigator.userAgent)) {
-                document.body.style.webkitTouchCallout = 'none';
-                document.body.style.webkitUserSelect = 'none';
-                
-                document.addEventListener('touchstart', (e) => {
-                    if (e.touches.length > 1) {
-                        e.preventDefault();
-                    }
-                });
-
-                let lastTouchEnd = 0;
-                document.addEventListener('touchend', (e) => {
-                    const now = (new Date()).getTime();
-                    if (now - lastTouchEnd <= 300) {
-                        e.preventDefault();
-                    }
-                    lastTouchEnd = now;
-                });
-            }
-
-            if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-                document.body.style.webkitTouchCallout = 'none';
-                
-                let lastTouch = 0;
-                document.addEventListener('touchstart', (e) => {
-                    const touch = e.touches[0];
-                    if (touch.clientY < 50 || touch.clientY > window.innerHeight - 50) {
-                        lastTouch = Date.now();
-                    }
-                });
-                
-                window.addEventListener('blur', () => {
-                    if (Date.now() - lastTouch < 1000) {
-                        this.handleSuspiciousActivity('📱 iOS Control Center algılandı!');
-                    }
-                });
-            }
-        }
-
-        // Dev Tools algılama
-        setupDevToolsDetection() {
-            let devtools = { open: false };
-            const threshold = 160;
-
-            setInterval(() => {
-                if (window.outerHeight - window.innerHeight > threshold || 
-                    window.outerWidth - window.innerWidth > threshold) {
-                    if (!devtools.open) {
-                        devtools.open = true;
-                        this.handleSuspiciousActivity('🔧 Geliştirici konsolu algılandı!');
-                        console.clear();
-                        console.log('🚫 UYARI: Geliştirici araçları kapatılmalıdır!');
-                    }
-                } else {
-                    devtools.open = false;
+        // İndirme koruması
+        setupDownloadProtection() {
+            // PDF linklerine müdahale
+            document.addEventListener('click', (e) => {
+                const target = e.target.closest('a[href*=".pdf"]');
+                if (target) {
+                    e.preventDefault();
+                    this.showWarning('PDF indirme engellendi');
+                    return false;
                 }
-            }, 500);
+            });
         }
 
-        // Şüpheli aktivite yönetimi
-        handleSuspiciousActivity(message) {
-            this.screenshotAttempts++;
-            console.log(`🚨 ${message} (${this.screenshotAttempts}. girişim)`);
-            
-            this.showWarning(message);
-            
-            document.body.classList.add('blur-content');
-            setTimeout(() => {
-                document.body.classList.remove('blur-content');
-            }, 2000);
-
-            this.logSecurityEvent(message);
-
-            if (this.screenshotAttempts >= this.maxAttempts) {
-                alert('🚨 ÇOK FAZLA GÜVENLİK İHLALİ!\n\nSite kapatılıyor...');
-                window.location.href = 'about:blank';
-            }
-        }
-
+        // Dostane uyarı göster
         showWarning(message) {
-            const warning = document.getElementById('screenshot-warning');
-            const counter = document.getElementById('attempt-counter');
+            this.warningCount++;
             
-            if (warning && counter) {
-                counter.textContent = this.screenshotAttempts;
+            const warning = document.getElementById('protection-warning');
+            if (warning) {
                 warning.style.display = 'block';
-                
-                if (navigator.vibrate) {
-                    navigator.vibrate([200, 100, 200]);
-                }
                 
                 setTimeout(() => {
                     warning.style.display = 'none';
-                }, 4000);
+                }, 3000);
             }
+
+            // Console'a log
+            console.log(`📋 Bilgilendirme: ${message} (${this.warningCount}. kez)`);
+
+            // Güvenlik kaydı
+            this.logSecurityEvent(message);
         }
 
         async logSecurityEvent(event) {
@@ -374,7 +301,7 @@
                         .from('security_logs')
                         .insert([{
                             user_email: currentUser.email,
-                            event_type: 'screenshot_attempt',
+                            event_type: 'user_activity',
                             event_description: event,
                             timestamp: new Date().toISOString(),
                             user_agent: navigator.userAgent,
@@ -386,30 +313,24 @@
             }
         }
 
-        showConsoleWarning() {
-            console.clear();
+        showConsoleMessage() {
             console.log(`
-%c🚨 GÜVENLİK UYARISI 🚨
+%c📚 DERS NOTLARI SİTESİ
 
-Bu site telif hakları ile korunmaktadır!
+✅ Görüntüleme: Serbest
+⚠️ İndirme: Yasak
+📱 Screenshot: İzinli (Paylaşmayınız)
+🔒 İçerik: Telif hakkı korumalı
 
-🚫 YASAK AKTİVİTELER:
-• Ekran görüntüsü almak
-• İçerik indirmek  
-• Kaynak kodu kopyalamak
-• Geliştirici araçları kullanmak
-
-⚖️ İhlal girişimleri kayıt altına alınır
 📞 Destek: sualpkula@gmail.com
-
-            `, 'color: red; font-size: 14px; font-weight: bold;');
+            `, 'color: #1976d2; font-size: 12px; font-weight: bold;');
         }
     }
 
     // === SAYFA YÜKLENDİĞİNDE ===
     window.onload = async function() {
-      // Koruma sistemini başlat
-      window.siteProtection = new SiteProtection();
+      // Hafifletilmiş koruma sistemini başlat
+      window.lightProtection = new LightProtection();
       
       await checkSession();
       await loadPDFs();
@@ -419,7 +340,7 @@ Bu site telif hakları ile korunmaktadır!
       document.getElementById("loading-screen").style.display = "none";
       document.getElementById("main-content").style.display = "block";
       
-      console.log('🔒 PDF koruma sistemi aktif!');
+      console.log('📚 PDF görüntüleyici hazır - Mobil uyumlu!');
     };
 
     // Session kontrolü
@@ -502,7 +423,7 @@ Bu site telif hakları ile korunmaktadır!
           
           <div class="pdf-actions">
             <button onclick="viewPDF('${pdf.file_path}', '${pdf.title}', ${pdf.id})" class="btn-view">
-              👁️ Sadece Görüntüle
+              👁️ PDF'i Görüntüle
             </button>
             <button class="btn-download" disabled title="İndirme devre dışı bırakılmıştır">
               🚫 İndirme Kapalı
@@ -531,7 +452,7 @@ Bu site telif hakları ile korunmaktadır!
       return new Date(dateString).toLocaleDateString('tr-TR');
     }
 
-    // PDF görüntüle (KORUMASIZ İNDİRME YOK)
+    // PDF görüntüle - Geliştirilmiş mobil uyumlu
     async function viewPDF(filePath, title, pdfId) {
       try {
         // Görüntüleme sayısını artır
@@ -543,7 +464,7 @@ Bu site telif hakları ile korunmaktadır!
 
         if (error) throw error;
 
-        // Korumalı PDF modal açs
+        // PDF modal aç
         openPDFModal(data.signedUrl, title);
         
       } catch (error) {
@@ -552,32 +473,56 @@ Bu site telif hakları ile korunmaktadır!
       }
     }
 
-    // PDF Modal aç
+    // Geliştirilmiş PDF Modal
     function openPDFModal(pdfUrl, title) {
       const modal = document.getElementById('pdf-modal');
+      const titleElement = document.getElementById('pdf-modal-title');
       const container = document.getElementById('pdf-viewer-container');
       
-      // Korumalı PDF viewer oluştur
-      container.innerHTML = `
-        <div class="protected-pdf-viewer" style="width: 100%; height: 100%;">
-          <iframe 
-            src="${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH&zoom=100"
-            style="width: 100%; height: 100%; border: none;"
-            sandbox="allow-scripts allow-same-origin"
-            oncontextmenu="return false;"
-            title="${title}">
-          </iframe>
-          <div class="pdf-protection-layer"></div>
-        </div>
-      `;
+      titleElement.textContent = title;
+
+      // Mobil uyumlu PDF viewer
+      const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      if (isMobile) {
+        // Mobil için daha basit görüntüleme
+        container.innerHTML = `
+          <div class="pdf-viewer-wrapper" style="width: 100%; height: 100%;">
+            <div class="pdf-viewer-controls">
+              <span>📱 Mobil Görüntüleyici</span>
+            </div>
+            <iframe 
+              src="${pdfUrl}"
+              style="width: 100%; height: calc(100% - 40px); border: none;"
+              title="${title}">
+              <p>Tarayıcınız PDF görüntülemeyi desteklemiyor. 
+              <a href="${pdfUrl}" target="_blank">PDF'i yeni sekmede açmak için tıklayın</a></p>
+            </iframe>
+          </div>
+        `;
+      } else {
+        // Desktop için gelişmiş görüntüleme
+        container.innerHTML = `
+          <div class="pdf-viewer-wrapper" style="width: 100%; height: 100%;">
+            <div class="pdf-viewer-controls">
+              <span>🖥️ Desktop Görüntüleyici - Yakınlaştırma: Ctrl + Mouse Wheel</span>
+            </div>
+            <iframe 
+              src="${pdfUrl}#toolbar=0&navpanes=0&scrollbar=1&view=FitH&zoom=100"
+              style="width: 100%; height: calc(100% - 40px); border: none;"
+              title="${title}">
+              <p>Tarayıcınız PDF görüntülemeyi desteklemiyor. 
+              <a href="${pdfUrl}" target="_blank">PDF'i yeni sekmede açmak için tıklayın</a></p>
+            </iframe>
+          </div>
+        `;
+      }
       
       modal.style.display = 'block';
       
-      // Modal için ek koruma
+      // Hafif koruma - sadece uyarı
       modal.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-        window.siteProtection.handleSuspiciousActivity('PDF modal sağ tık engellendi!');
-        return false;
+        window.lightProtection.showWarning('PDF modal sağ tık kullanıldı');
       });
     }
 
@@ -586,6 +531,20 @@ Bu site telif hakları ile korunmaktadır!
       const modal = document.getElementById('pdf-modal');
       modal.style.display = 'none';
     }
+
+    // ESC tuşu ile modal kapatma
+    document.addEventListener('keydown', function(e) {
+      if (e.keyCode === 27) { // ESC
+        closePDFModal();
+      }
+    });
+
+    // Modal dışına tıklayınca kapatma
+    document.getElementById('pdf-modal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        closePDFModal();
+      }
+    });
 
     // Görüntüleme sayısını artır
     async function incrementViewCount(pdfId) {
