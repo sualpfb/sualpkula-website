@@ -14,12 +14,23 @@
     <div class="welcome-text" id="welcome-message">Hoş geldin!</div>
     <div class="profile-section">
       <div class="profile-button" onclick="toggleProfile()">
-        <img src="images/sualp.jpg" id="mini-profile" class="profile-img-small" />
+        <img src="images/default-avatar.png" id="mini-profile" class="profile-img-small" />
         <span id="mini-name">Profil</span>
       </div>
       <button onclick="logout()" class="logout-button">Çıkış</button>
       <div id="profile-box">
         <form id="profile-form">
+          <!-- Profil Fotoğrafı Yükleme Bölümü -->
+          <div class="photo-upload-section">
+            <div class="current-photo">
+              <img id="profile-preview" src="images/default-avatar.png" class="profile-photo-large" />
+            </div>
+            <input type="file" id="photo-input" accept="image/*" style="display: none;" />
+            <button type="button" onclick="document.getElementById('photo-input').click()" class="photo-upload-btn">
+              📸 Fotoğraf Seç
+            </button>
+          </div>
+          
           <input type="text" id="ad" placeholder="Ad" />
           <input type="text" id="soyad" placeholder="Soyad" />
           <input type="text" id="uni" placeholder="Üniversite-Bölüm" />
@@ -51,6 +62,18 @@
     ];
 
     let currentUser = null;
+
+    // Profil fotoğrafı önizleme
+    document.getElementById('photo-input').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          document.getElementById('profile-preview').src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
 
     // Profil bilgilerini yükle
     async function loadProfile() {
@@ -88,6 +111,12 @@
         document.getElementById("uni").value = data.uni || "";
         document.getElementById("hobiler").value = data.hobiler || "";
         
+        // Profil fotoğrafını yükle
+        if (data.profile_photo) {
+          document.getElementById("mini-profile").src = data.profile_photo;
+          document.getElementById("profile-preview").src = data.profile_photo;
+        }
+        
         const displayName = data.ad || user.email.split('@')[0];
         document.getElementById("welcome-message").textContent = `Hoş geldin, ${displayName}!`;
         document.getElementById("mini-name").textContent = data.ad || "Profil";
@@ -107,6 +136,7 @@
       const soyad = document.getElementById("soyad").value.trim();
       const uni = document.getElementById("uni").value.trim();
       const hobiler = document.getElementById("hobiler").value.trim();
+      const photoInput = document.getElementById("photo-input");
 
       // Buton loading state
       const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -115,15 +145,47 @@
       submitBtn.disabled = true;
 
       try {
+        let profilePhotoUrl = null;
+
+        // Eğer yeni fotoğraf seçildiyse
+        if (photoInput.files[0]) {
+          const file = photoInput.files[0];
+          const fileName = `profile_${currentUser.email}_${Date.now()}.${file.name.split('.').pop()}`;
+          
+          // Supabase Storage'a yükle
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('profile-photos')
+            .upload(fileName, file);
+
+          if (uploadError) {
+            throw new Error("Fotoğraf yüklenemedi: " + uploadError.message);
+          }
+
+          // Public URL al
+          const { data: urlData } = supabase.storage
+            .from('profile-photos')
+            .getPublicUrl(fileName);
+
+          profilePhotoUrl = urlData.publicUrl;
+        }
+
+        // Database'e kaydet
+        const profileData = {
+          id: currentUser.email,  // Email'i ID olarak kullan
+          ad,
+          soyad,
+          uni,
+          hobiler
+        };
+
+        // Eğer yeni fotoğraf varsa ekle
+        if (profilePhotoUrl) {
+          profileData.profile_photo = profilePhotoUrl;
+        }
+
         const { error } = await supabase
           .from("profiles")
-          .upsert({
-            id: currentUser.email,  // Email'i ID olarak kullan
-            ad,
-            soyad,
-            uni,
-            hobiler
-          });
+          .upsert(profileData);
 
         if (error) {
           throw error;
@@ -134,6 +196,11 @@
         const displayName = ad || currentUser.email.split('@')[0];
         document.getElementById("welcome-message").textContent = `Hoş geldin, ${displayName}!`;
         document.getElementById("mini-name").textContent = ad || "Profil";
+        
+        // Eğer yeni fotoğraf kaydedildiyse mini profile'ı güncelle
+        if (profilePhotoUrl) {
+          document.getElementById("mini-profile").src = profilePhotoUrl;
+        }
         
         toggleProfile();
 
