@@ -6,6 +6,81 @@
   <title>Ders Notları - Sualp Kula</title>
   <link rel="stylesheet" href="styles/style.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  
+  <!-- Koruma Sistemi CSS -->
+  <style>
+    /* Temel koruma stilleri */
+    body {
+        user-select: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        -webkit-touch-callout: none;
+    }
+
+    /* Screenshot uyarı modalı */
+    .screenshot-warning {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: linear-gradient(45deg, #ff4444, #cc0000);
+        color: white;
+        padding: 25px;
+        border-radius: 15px;
+        z-index: 9999;
+        display: none;
+        box-shadow: 0 8px 25px rgba(255, 68, 68, 0.4);
+        text-align: center;
+        font-weight: bold;
+        max-width: 300px;
+    }
+
+    /* Blur efekti */
+    .blur-content {
+        filter: blur(10px);
+        transition: filter 0.3s ease;
+    }
+
+    /* PDF viewer koruması */
+    .protected-pdf-viewer {
+        position: relative;
+        overflow: hidden;
+        border-radius: 10px;
+        background: #f8f9fa;
+        border: 2px solid #e9ecef;
+    }
+
+    .pdf-protection-layer {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 5;
+        background: transparent;
+        pointer-events: none;
+    }
+
+    /* İndirme butonu devre dışı stili */
+    .btn-download:disabled {
+        background: linear-gradient(45deg, #6c757d, #495057);
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+    /* Koruma uyarı mesajı */
+    .protection-notice {
+        background: linear-gradient(45deg, #ffc107, #fd7e14);
+        color: #212529;
+        padding: 15px;
+        border-radius: 10px;
+        margin: 20px 0;
+        text-align: center;
+        font-weight: bold;
+        box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3);
+    }
+  </style>
 </head>
 <body>
   <!-- Loading Screen -->
@@ -14,6 +89,14 @@
       <div class="loading-spinner"></div>
       <p>PDF'ler yükleniyor...</p>
     </div>
+  </div>
+
+  <!-- Screenshot uyarı modalı -->
+  <div id="screenshot-warning" class="screenshot-warning">
+      <h3>⚠️ GÜVENLİK UYARISI!</h3>
+      <p>🚫 Bu site ekran görüntüsü almayı yasaklar!</p>
+      <p>📱 İçerik korunmaktadır.</p>
+      <p><small>Girişim sayısı: <span id="attempt-counter">0</span></small></p>
   </div>
 
   <div class="top-bar">
@@ -26,6 +109,12 @@
 
   <div class="main-content" id="main-content" style="display: none;">
     
+    <!-- Koruma Bildirimi -->
+    <div class="protection-notice">
+        🔒 <strong>KORUNAN İÇERİK:</strong> Bu sayfadaki PDF'ler telif hakkı koruması altındadır. 
+        Ekran görüntüsü almak ve içerik kopyalamak yasaktır.
+    </div>
+
     <!-- Kategori Filtreleri -->
     <div class="filter-section">
       <h3>🔍 Kategori Filtresi</h3>
@@ -56,6 +145,16 @@
       </div>
     </div>
 
+    <!-- PDF Modal -->
+    <div id="pdf-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000;">
+      <div style="position: relative; width: 90%; height: 90%; margin: 5% auto; background: white; border-radius: 10px;">
+        <button onclick="closePDFModal()" style="position: absolute; top: 10px; right: 10px; z-index: 1001; background: #dc3545; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer;">✖ Kapat</button>
+        <div id="pdf-viewer-container" style="width: 100%; height: 100%; padding: 50px 20px 20px;">
+          <!-- PDF buraya yüklenecek -->
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <script>
@@ -67,8 +166,251 @@
     let allPDFs = [];
     let currentCategory = 'all';
 
-    // Sayfa yüklendiğinde
+    // === KORUMA SİSTEMİ ===
+    class SiteProtection {
+        constructor() {
+            this.screenshotAttempts = 0;
+            this.maxAttempts = 5;
+            this.init();
+        }
+
+        init() {
+            this.setupScreenshotProtection();
+            this.setupKeyboardProtection();
+            this.setupContextMenuProtection();
+            this.setupDragProtection();
+            this.setupMobileProtection();
+            this.setupDevToolsDetection();
+            this.showConsoleWarning();
+        }
+
+        // Ekran görüntüsü koruma
+        setupScreenshotProtection() {
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    this.handleSuspiciousActivity('📱 Screenshot girişimi algılandı!');
+                }
+            });
+
+            window.addEventListener('pagehide', () => {
+                this.handleSuspiciousActivity('📱 Mobil screenshot girişimi!');
+            });
+        }
+
+        // Klavye koruma
+        setupKeyboardProtection() {
+            document.addEventListener('keydown', (e) => {
+                // Print Screen
+                if (e.keyCode === 44) {
+                    e.preventDefault();
+                    this.handleSuspiciousActivity('🖨️ Print Screen engellendi!');
+                    return false;
+                }
+                
+                // F12, Ctrl+Shift+I (Dev Tools)
+                if (e.keyCode === 123 || 
+                    (e.ctrlKey && e.shiftKey && e.keyCode === 73)) {
+                    e.preventDefault();
+                    this.handleSuspiciousActivity('🔧 Geliştirici araçları engellendi!');
+                    return false;
+                }
+
+                // Ctrl+U (Kaynak görüntüle)
+                if (e.ctrlKey && e.keyCode === 85) {
+                    e.preventDefault();
+                    this.handleSuspiciousActivity('📝 Kaynak kodu görüntüleme engellendi!');
+                    return false;
+                }
+
+                // Ctrl+S (Sayfa kaydet)
+                if (e.ctrlKey && e.keyCode === 83) {
+                    e.preventDefault();
+                    this.handleSuspiciousActivity('💾 Sayfa kaydetme engellendi!');
+                    return false;
+                }
+
+                // Ctrl+P (Yazdır)
+                if (e.ctrlKey && e.keyCode === 80) {
+                    e.preventDefault();
+                    this.handleSuspiciousActivity('🖨️ Yazdırma engellendi!');
+                    return false;
+                }
+
+                // Ctrl+A (Tümünü seç)
+                if (e.ctrlKey && e.keyCode === 65) {
+                    e.preventDefault();
+                    this.handleSuspiciousActivity('📋 İçerik seçimi engellendi!');
+                    return false;
+                }
+            });
+        }
+
+        // Sağ tık koruma
+        setupContextMenuProtection() {
+            document.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                this.handleSuspiciousActivity('🖱️ Sağ tık menüsü engellendi!');
+                return false;
+            });
+        }
+
+        // Sürükle bırak koruma
+        setupDragProtection() {
+            document.addEventListener('dragstart', (e) => {
+                e.preventDefault();
+                this.handleSuspiciousActivity('🔄 İçerik sürükleme engellendi!');
+                return false;
+            });
+
+            document.addEventListener('selectstart', (e) => {
+                e.preventDefault();
+                return false;
+            });
+        }
+
+        // Mobil koruma
+        setupMobileProtection() {
+            if (/Android/i.test(navigator.userAgent)) {
+                document.body.style.webkitTouchCallout = 'none';
+                document.body.style.webkitUserSelect = 'none';
+                
+                document.addEventListener('touchstart', (e) => {
+                    if (e.touches.length > 1) {
+                        e.preventDefault();
+                    }
+                });
+
+                let lastTouchEnd = 0;
+                document.addEventListener('touchend', (e) => {
+                    const now = (new Date()).getTime();
+                    if (now - lastTouchEnd <= 300) {
+                        e.preventDefault();
+                    }
+                    lastTouchEnd = now;
+                });
+            }
+
+            if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+                document.body.style.webkitTouchCallout = 'none';
+                
+                let lastTouch = 0;
+                document.addEventListener('touchstart', (e) => {
+                    const touch = e.touches[0];
+                    if (touch.clientY < 50 || touch.clientY > window.innerHeight - 50) {
+                        lastTouch = Date.now();
+                    }
+                });
+                
+                window.addEventListener('blur', () => {
+                    if (Date.now() - lastTouch < 1000) {
+                        this.handleSuspiciousActivity('📱 iOS Control Center algılandı!');
+                    }
+                });
+            }
+        }
+
+        // Dev Tools algılama
+        setupDevToolsDetection() {
+            let devtools = { open: false };
+            const threshold = 160;
+
+            setInterval(() => {
+                if (window.outerHeight - window.innerHeight > threshold || 
+                    window.outerWidth - window.innerWidth > threshold) {
+                    if (!devtools.open) {
+                        devtools.open = true;
+                        this.handleSuspiciousActivity('🔧 Geliştirici konsolu algılandı!');
+                        console.clear();
+                        console.log('🚫 UYARI: Geliştirici araçları kapatılmalıdır!');
+                    }
+                } else {
+                    devtools.open = false;
+                }
+            }, 500);
+        }
+
+        // Şüpheli aktivite yönetimi
+        handleSuspiciousActivity(message) {
+            this.screenshotAttempts++;
+            console.log(`🚨 ${message} (${this.screenshotAttempts}. girişim)`);
+            
+            this.showWarning(message);
+            
+            document.body.classList.add('blur-content');
+            setTimeout(() => {
+                document.body.classList.remove('blur-content');
+            }, 2000);
+
+            this.logSecurityEvent(message);
+
+            if (this.screenshotAttempts >= this.maxAttempts) {
+                alert('🚨 ÇOK FAZLA GÜVENLİK İHLALİ!\n\nSite kapatılıyor...');
+                window.location.href = 'about:blank';
+            }
+        }
+
+        showWarning(message) {
+            const warning = document.getElementById('screenshot-warning');
+            const counter = document.getElementById('attempt-counter');
+            
+            if (warning && counter) {
+                counter.textContent = this.screenshotAttempts;
+                warning.style.display = 'block';
+                
+                if (navigator.vibrate) {
+                    navigator.vibrate([200, 100, 200]);
+                }
+                
+                setTimeout(() => {
+                    warning.style.display = 'none';
+                }, 4000);
+            }
+        }
+
+        async logSecurityEvent(event) {
+            try {
+                if (currentUser) {
+                    await supabase
+                        .from('security_logs')
+                        .insert([{
+                            user_email: currentUser.email,
+                            event_type: 'screenshot_attempt',
+                            event_description: event,
+                            timestamp: new Date().toISOString(),
+                            user_agent: navigator.userAgent,
+                            page_url: window.location.href
+                        }]);
+                }
+            } catch (error) {
+                console.error('Security log error:', error);
+            }
+        }
+
+        showConsoleWarning() {
+            console.clear();
+            console.log(`
+%c🚨 GÜVENLİK UYARISI 🚨
+
+Bu site telif hakları ile korunmaktadır!
+
+🚫 YASAK AKTİVİTELER:
+• Ekran görüntüsü almak
+• İçerik indirmek  
+• Kaynak kodu kopyalamak
+• Geliştirici araçları kullanmak
+
+⚖️ İhlal girişimleri kayıt altına alınır
+📞 Destek: sualpkula@gmail.com
+
+            `, 'color: red; font-size: 14px; font-weight: bold;');
+        }
+    }
+
+    // === SAYFA YÜKLENDİĞİNDE ===
     window.onload = async function() {
+      // Koruma sistemini başlat
+      window.siteProtection = new SiteProtection();
+      
       await checkSession();
       await loadPDFs();
       setupFilters();
@@ -76,6 +418,8 @@
       // Loading screen'i gizle
       document.getElementById("loading-screen").style.display = "none";
       document.getElementById("main-content").style.display = "block";
+      
+      console.log('🔒 PDF koruma sistemi aktif!');
     };
 
     // Session kontrolü
@@ -152,16 +496,16 @@
             <div class="pdf-meta">
               <span>📅 ${formatDate(pdf.upload_date)}</span>
               <span>👤 ${pdf.uploaded_by}</span>
-              <span>⬇️ ${pdf.download_count || 0} indirme</span>
+              <span>👁️ ${pdf.view_count || 0} görüntüleme</span>
             </div>
           </div>
           
           <div class="pdf-actions">
-            <button onclick="viewPDF('${pdf.file_path}', '${pdf.title}')" class="btn-view">
-              👁️ Görüntüle
+            <button onclick="viewPDF('${pdf.file_path}', '${pdf.title}', ${pdf.id})" class="btn-view">
+              👁️ Sadece Görüntüle
             </button>
-            <button onclick="downloadPDF('${pdf.file_path}', '${pdf.title}', ${pdf.id})" class="btn-download">
-              ⬇️ İndir
+            <button class="btn-download" disabled title="İndirme devre dışı bırakılmıştır">
+              🚫 İndirme Kapalı
             </button>
           </div>
         </div>
@@ -187,17 +531,20 @@
       return new Date(dateString).toLocaleDateString('tr-TR');
     }
 
-    // PDF görüntüle
-    async function viewPDF(filePath, title) {
+    // PDF görüntüle (KORUMASIZ İNDİRME YOK)
+    async function viewPDF(filePath, title, pdfId) {
       try {
+        // Görüntüleme sayısını artır
+        await incrementViewCount(pdfId);
+        
         const { data, error } = await supabase.storage
           .from('pdfs')
-          .createSignedUrl(filePath, 3600); // 1 saat geçerli
+          .createSignedUrl(filePath, 3600);
 
         if (error) throw error;
 
-        // Yeni pencerede aç
-        window.open(data.signedUrl, '_blank');
+        // Korumalı PDF modal açs
+        openPDFModal(data.signedUrl, title);
         
       } catch (error) {
         console.error("PDF görüntüleme hatası:", error);
@@ -205,40 +552,47 @@
       }
     }
 
-    // PDF indir
-    async function downloadPDF(filePath, title, pdfId) {
-      try {
-        const { data, error } = await supabase.storage
-          .from('pdfs')
-          .download(filePath);
-
-        if (error) throw error;
-
-        // Dosyayı indir
-        const url = URL.createObjectURL(data);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${title}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-
-        // İndirme sayısını artır
-        await incrementDownloadCount(pdfId);
-        
-      } catch (error) {
-        console.error("PDF indirme hatası:", error);
-        alert("PDF indirilirken hata oluştu: " + error.message);
-      }
+    // PDF Modal aç
+    function openPDFModal(pdfUrl, title) {
+      const modal = document.getElementById('pdf-modal');
+      const container = document.getElementById('pdf-viewer-container');
+      
+      // Korumalı PDF viewer oluştur
+      container.innerHTML = `
+        <div class="protected-pdf-viewer" style="width: 100%; height: 100%;">
+          <iframe 
+            src="${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH&zoom=100"
+            style="width: 100%; height: 100%; border: none;"
+            sandbox="allow-scripts allow-same-origin"
+            oncontextmenu="return false;"
+            title="${title}">
+          </iframe>
+          <div class="pdf-protection-layer"></div>
+        </div>
+      `;
+      
+      modal.style.display = 'block';
+      
+      // Modal için ek koruma
+      modal.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        window.siteProtection.handleSuspiciousActivity('PDF modal sağ tık engellendi!');
+        return false;
+      });
     }
 
-    // İndirme sayısını artır
-    async function incrementDownloadCount(pdfId) {
+    // PDF Modal kapat
+    function closePDFModal() {
+      const modal = document.getElementById('pdf-modal');
+      modal.style.display = 'none';
+    }
+
+    // Görüntüleme sayısını artır
+    async function incrementViewCount(pdfId) {
       try {
-        await supabase.rpc('increment_download_count', { pdf_id: pdfId });
+        await supabase.rpc('increment_view_count', { pdf_id: pdfId });
       } catch (error) {
-        console.error("İndirme sayısı güncellenemedi:", error);
+        console.error("Görüntüleme sayısı güncellenemedi:", error);
       }
     }
 
@@ -248,11 +602,9 @@
       
       filterButtons.forEach(button => {
         button.addEventListener('click', function() {
-          // Aktif butonu değiştir
           filterButtons.forEach(btn => btn.classList.remove('active'));
           this.classList.add('active');
           
-          // Kategoriyi filtrele
           currentCategory = this.dataset.category;
           filterPDFs();
         });
