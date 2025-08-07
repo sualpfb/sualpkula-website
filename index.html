@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -10,26 +9,24 @@
   <meta name="description" content="Sualp Kula'nın kişisel web sitesi: CV, özel ders bilgileri ve iletişim.">
   <meta name="keywords" content="Sualp Kula, Matematik, Özel Ders, CV, Hacettepe, sualpkula.com">
   <meta name="author" content="Sualp Kula">
-
   <!-- CSS -->
   <link rel="stylesheet" href="styles/style.css" />
-
   <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <script src="scripts/auth.js" defer></script>
-
-
-  </script>
 </head>
-
 <body>
   <div class="login-container">
     <img src="images/sualp.jpg" alt="Sualp Kula" class="profile-photo" />
     <h2>Giriş Yap</h2>
-
     <form id="login-form">
       <input type="email" id="username" placeholder="E-posta" required />
-      <input type="password" id="password" placeholder="Şifre" required />
+      <div class="password-container">
+        <input type="password" id="password" placeholder="Şifre" required />
+        <button type="button" class="password-toggle" onclick="togglePassword()">
+          <span id="password-icon">👁️</span>
+        </button>
+      </div>
       <button type="submit" class="btn-pink">Giriş Yap</button>
     </form>
     
@@ -37,11 +34,25 @@
       <button type="button" onclick="guestLogin()" class="btn-pink guest-btn">Misafir Girişi</button>
       <button onclick="window.location.href='register.html'" class="btn-pink guest-btn">Kayıt Ol</button>
     </div>
-
     <div class="link-text">
       <a href="forgot.html">Şifreni mi unuttun?</a>
     </div>
   </div>
+
+  <script>
+    // Şifre görünürlük toggle fonksiyonu
+    function togglePassword() {
+      const passwordInput = document.getElementById('password');
+      const passwordIcon = document.getElementById('password-icon');
+      
+      if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        passwordIcon.textContent = '🙈';
+      } else {
+        passwordInput.type = 'password';
+        passwordIcon.textContent = '👁️';
+      }
+    }
+  </script>
 </body>
 </html>
-
