@@ -649,3 +649,33 @@ button {
     width: 100%;
   }
 }
+
+/* Şifre container stilleri - bu kısmı style.css'e ekle */
+.password-container {
+  position: relative;
+  width: 100%;
+}
+
+.password-container input {
+  padding-right: 45px; /* Sağda buton için yer bırak */
+}
+
+.password-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  font-size: 16px;
+  width: auto;
+  height: auto;
+}
+
+.password-toggle:hover {
+  background-color: rgba(0,0,0,0.1);
+  border-radius: 50%;
+}
+
