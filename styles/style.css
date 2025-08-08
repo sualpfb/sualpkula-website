@@ -98,13 +98,13 @@ button {
   text-decoration: underline;
 }
 
-/* Üst bar - Home sayfası - GÜNCELLENDİ */
+/* Üst bar - Home sayfası */
 .top-bar {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  height: 80px; /* 60px'den 80px'e çıkarıldı */
+  height: 60px;
   background-color: #b2ebf2;
   display: flex;
   justify-content: space-between;
@@ -131,20 +131,19 @@ button {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 10px; /* Çıkış butonundan ayırmak için */
 }
 
 /* Profil kutusu */
 #profile-box {
   position: absolute;
-  top: 90px; /* 70px'den 90px'e çıkarıldı (üst bar yüksekliği arttığı için) */
+  top: 70px;
   right: 20px;
   background: white;
   padding: 15px;
   border-radius: 10px;
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
   display: none;
-  width: 280px;
+  width: 220px;
 }
 
 #profile-box input,
@@ -159,7 +158,7 @@ button {
 
 /* Ana içerik */
 .main-content {
-  margin-top: 120px; /* 100px'den 120px'e çıkarıldı */
+  margin-top: 100px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -219,21 +218,19 @@ button {
   border-radius: 5px;
   cursor: pointer;
   font-size: 14px;
-  margin-left: 0; /* margin-left'i kaldır */
+  margin-left: 15px;
   transition: background-color 0.3s ease;
-  width: auto; /* Genişliği otomatik */
 }
 
 .logout-button:hover {
   background-color: #c82333;
 }
 
-/* Top bar sağ taraf düzenlemesi - GÜNCELLENDİ */
+/* Top bar sağ taraf düzenlemesi */
 .profile-section {
   display: flex;
-  flex-direction: column; /* Yan yana yerine üst üste */
-  align-items: flex-end; /* Sağa hizala */
-  gap: 10px; /* Aralarında boşluk */
+  align-items: center;
+  gap: 10px;
 }
 
 /* Admin Panel Stilleri */
@@ -617,7 +614,43 @@ button {
   margin: 0 auto 20px;
 }
 
-/* Şifre container stilleri */
+/* Responsive */
+@media (max-width: 768px) {
+  .filter-buttons {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .filter-btn {
+    width: 200px;
+  }
+  
+  .pdf-header {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .pdf-category {
+    align-self: flex-start;
+    margin-left: 0;
+  }
+  
+  .pdf-meta {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .pdf-actions {
+    flex-direction: column;
+  }
+  
+  .btn-view,
+  .btn-download {
+    width: 100%;
+  }
+}
+
+/* Şifre container stilleri - bu kısmı style.css'e ekle */
 .password-container {
   position: relative;
   width: 100%;
@@ -646,7 +679,8 @@ button {
   border-radius: 50%;
 }
 
-/* Profil fotoğrafı yükleme stilleri */
+/* Profil fotoğrafı yükleme stilleri - bu kısmı style.css'e ekle */
+
 .photo-upload-section {
   text-align: center;
   margin-bottom: 15px;
@@ -687,60 +721,36 @@ button {
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
-/* Responsive tasarım için */
-@media (max-width: 768px) {
-  .top-bar {
-    height: 100px; /* Mobilde daha da yüksek */
-    flex-direction: column;
-    justify-content: center;
-    padding: 10px 20px;
-  }
-  
-  .profile-section {
-    align-items: center;
-  }
-  
-  .main-content {
-    margin-top: 140px;
-  }
-  
-  #profile-box {
-    top: 110px;
-    right: 10px;
-    left: 10px;
-    width: auto;
-  }
+/* Profile box genişletme */
+#profile-box {
+  width: 280px; /* Biraz daha geniş yap */
+}
 
-  .filter-buttons {
-    flex-direction: column;
-    align-items: center;
-  }
-  
-  .filter-btn {
-    width: 200px;
-  }
-  
-  .pdf-header {
-    flex-direction: column;
-    gap: 10px;
-  }
-  
-  .pdf-category {
-    align-self: flex-start;
-    margin-left: 0;
-  }
-  
-  .pdf-meta {
-    flex-direction: column;
-    gap: 10px;
-  }
-  
-  .pdf-actions {
-    flex-direction: column;
-  }
-  
-  .btn-view,
-  .btn-download {
-    width: 100%;
-  }
+/* Şifre container stilleri */
+.password-container {
+  position: relative;
+  width: 100%;
+}
+
+.password-container input {
+  padding-right: 45px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  font-size: 16px;
+  width: auto;
+  height: auto;
+}
+
+.password-toggle:hover {
+  background-color: rgba(0,0,0,0.1);
+  border-radius: 50%;
 }
