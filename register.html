@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Kayıt Ol - Sualp Kula Web Sitesi</title>
   <link rel="stylesheet" href="styles/style.css" />
-
   <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <!-- Auth JS -->
@@ -16,7 +15,8 @@
     <h1>Kayıt Ol</h1>
     <form id="register-form">
       <input type="email" id="new-username" placeholder="E-posta" required />
-      <input type="password" id="new-password" placeholder="Şifre" required />
+      <input type="password" id="new-password" placeholder="Şifre (min. 6 karakter)" required minlength="6" />
+      <input type="password" id="confirm-password" placeholder="Şifreyi tekrar girin" required minlength="6" />
       <button type="submit">Kayıt Ol</button>
     </form>
     <p>Zaten bir hesabın var mı? <a href="index.html">Giriş Yap</a></p>
@@ -24,4 +24,3 @@
   
 </body>
 </html>
-
