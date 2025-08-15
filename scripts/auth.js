@@ -20,11 +20,24 @@ document.getElementById('login-form')?.addEventListener('submit', async function
   }
 });
 
-// === KAYIT ===
+// === KAYIT (ŞİFRE DOĞRULAMA İLE GÜNCELLENDİ) ===
 document.getElementById('register-form')?.addEventListener('submit', async function(event) {
   event.preventDefault();
   const email = document.getElementById('new-username').value;
   const password = document.getElementById('new-password').value;
+  const confirmPassword = document.getElementById('confirm-password').value;
+
+  // Şifre doğrulama kontrolü
+  if (password !== confirmPassword) {
+    alert("Şifreler eşleşmiyor! Lütfen şifreleri kontrol edin.");
+    return;
+  }
+
+  // Şifre uzunluk kontrolü
+  if (password.length < 6) {
+    alert("Şifre en az 6 karakter olmalı!");
+    return;
+  }
 
   const { data, error } = await supabaseClient.auth.signUp({ email, password });
 
@@ -121,7 +134,7 @@ document.getElementById("profile-form")?.addEventListener("submit", async functi
   }
 });
 
-// === ŞİFRE SIFIRLAMA (GÜNCELLENDİ) ===
+// === ŞİFRE SIFIRLAMA ===
 document.getElementById("forgot-form")?.addEventListener("submit", async function (e) {
   e.preventDefault();
   const email = document.getElementById("forgot-email").value;
