@@ -121,19 +121,34 @@ document.getElementById("profile-form")?.addEventListener("submit", async functi
   }
 });
 
-// === ŞİFRE SIFIRLAMA ===
+// === ŞİFRE SIFIRLAMA (GÜNCELLENDİ) ===
 document.getElementById("forgot-form")?.addEventListener("submit", async function (e) {
   e.preventDefault();
   const email = document.getElementById("forgot-email").value;
+  const submitButton = e.target.querySelector('button[type="submit"]');
+  
+  // Button'u disable et ve loading göster
+  submitButton.disabled = true;
+  const originalText = submitButton.textContent;
+  submitButton.textContent = 'Gönderiliyor...';
 
-  const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.origin + "/reset.html"
-  });
+  try {
+    const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+      redirectTo: 'https://sualpkula.com/reset.html'
+    });
 
-  if (error) {
-    alert("Hata: " + error.message);
-  } else {
-    alert("E-posta gönderildi! Lütfen gelen kutunu kontrol et.");
+    if (error) {
+      alert("Hata: " + error.message);
+    } else {
+      alert("Şifre sıfırlama e-postası gönderildi! E-posta kutunuzu kontrol edin.");
+      document.getElementById("forgot-email").value = ''; // Formu temizle
+    }
+  } catch (err) {
+    alert("Beklenmeyen hata: " + err.message);
+  } finally {
+    // Button'u tekrar aktif et
+    submitButton.disabled = false;
+    submitButton.textContent = originalText;
   }
 });
 
@@ -191,4 +206,3 @@ async function checkSession() {
 
 // Sayfa yüklendiğinde session kontrolü yap
 window.addEventListener('load', checkSession);
-
