@@ -18,21 +18,18 @@
       margin: auto;
       margin-top: 10vh;
     }
-    
     .loading {
       display: none;
       color: #1877F2;
       font-size: 14px;
       margin-top: 10px;
     }
-    
     .error-message {
       color: #dc3545;
       font-size: 14px;
       margin-top: 10px;
       display: none;
     }
-    
     .success-message {
       color: #28a745;
       font-size: 14px;
@@ -45,17 +42,14 @@
   <div id="reset-container" class="reset-container" style="display: none;">
     <h2>Yeni Şifre Belirle</h2>
     <p>Lütfen yeni şifrenizi girin:</p>
-    
     <form id="reset-form">
       <input type="password" id="new-password" placeholder="Yeni şifre (min. 6 karakter)" required minlength="6" />
       <input type="password" id="confirm-password" placeholder="Şifreyi tekrar girin" required minlength="6" />
       <button type="submit" class="btn-pink">Şifreyi Güncelle</button>
     </form>
-    
     <div id="loading" class="loading">Şifre güncelleniyor...</div>
     <div id="error-message" class="error-message"></div>
     <div id="success-message" class="success-message"></div>
-    
     <p style="margin-top: 20px;">
       <a href="index.html">Giriş sayfasına dön</a>
     </p>
@@ -74,24 +68,28 @@
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2bHl6eGxqaWVmdGJremtkd3p2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4ODQxNTgsImV4cCI6MjA2NjQ2MDE1OH0.mJEavNb2WC_0pBpg8KJq0ABc2hquYTewoge38U5P7dw";
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // Sayfa yüklendiğinde çalışır
     window.onload = async () => {
       const hash = window.location.hash;
-      
-      // Recovery token kontrolü
+
       if (hash.includes("type=recovery")) {
-        document.getElementById("reset-container").style.display = "block";
-        
-        // Token'ı otomatik olarak işle
-        try {
-          const { data, error } = await supabase.auth.getSession();
+        const params = new URLSearchParams(hash.substring(1));
+        const access_token = params.get("access_token");
+        const refresh_token = params.get("refresh_token");
+
+        if (access_token && refresh_token) {
+          const { error } = await supabase.auth.setSession({
+            access_token,
+            refresh_token
+          });
+
           if (error) {
             console.error("Session hatası:", error);
             showInvalidToken();
             return;
           }
-        } catch (err) {
-          console.error("Token işleme hatası:", err);
+
+          document.getElementById("reset-container").style.display = "block";
+        } else {
           showInvalidToken();
         }
       } else {
@@ -99,40 +97,32 @@
       }
     };
 
-    // Form gönderildiğinde çalışır
     document.getElementById("reset-form").addEventListener("submit", async function(event) {
       event.preventDefault();
-      
+
       const newPassword = document.getElementById("new-password").value;
       const confirmPassword = document.getElementById("confirm-password").value;
-      
-      // Şifre eşleşme kontrolü
+
       if (newPassword !== confirmPassword) {
         showError("Şifreler eşleşmiyor!");
         return;
       }
-      
-      // Şifre uzunluk kontrolü
+
       if (newPassword.length < 6) {
         showError("Şifre en az 6 karakter olmalı!");
         return;
       }
-      
+
       showLoading(true);
       hideMessages();
-      
+
       try {
-        // Şifreyi güncelle
-        const { data, error } = await supabase.auth.updateUser({ 
-          password: newPassword 
-        });
-        
+        const { error } = await supabase.auth.updateUser({ password: newPassword });
+
         if (error) {
           showError("Şifre güncellenirken hata oluştu: " + error.message);
         } else {
           showSuccess("Şifreniz başarıyla güncellendi! Giriş sayfasına yönlendiriliyorsunuz...");
-          
-          // 2 saniye sonra giriş sayfasına yönlendir
           setTimeout(() => {
             window.location.href = "index.html";
           }, 2000);
@@ -140,33 +130,32 @@
       } catch (err) {
         showError("Beklenmeyen bir hata oluştu: " + err.message);
       }
-      
+
       showLoading(false);
     });
 
-    // Yardımcı fonksiyonlar
     function showInvalidToken() {
       document.getElementById("reset-container").style.display = "none";
       document.getElementById("invalid-token").style.display = "block";
     }
-    
+
     function showLoading(show) {
       document.getElementById("loading").style.display = show ? "block" : "none";
       document.querySelector("button[type='submit']").disabled = show;
     }
-    
+
     function showError(message) {
       const errorDiv = document.getElementById("error-message");
       errorDiv.textContent = message;
       errorDiv.style.display = "block";
     }
-    
+
     function showSuccess(message) {
       const successDiv = document.getElementById("success-message");
       successDiv.textContent = message;
       successDiv.style.display = "block";
     }
-    
+
     function hideMessages() {
       document.getElementById("error-message").style.display = "none";
       document.getElementById("success-message").style.display = "none";
