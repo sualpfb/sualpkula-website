@@ -188,6 +188,82 @@
             border: 1px solid #a03025;
         }
 
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .turn-indicator {
+            font-weight: bold;
+            padding: 8px 16px;
+            border-radius: 20px;
+            background-color: #007bff;
+            color: white;
+        }
+
+        .turn-indicator.my-turn {
+            background-color: #28a745;
+            animation: pulse 1.5s infinite;
+        }
+
+        .cards-info {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .arrow {
+            font-size: 24px;
+            color: #007bff;
+        }
+
+        .help-text {
+            color: #666;
+            font-style: italic;
+            margin-top: 10px;
+            display: block;
+        }
+
+        .opponent-hand {
+            border-left: 4px solid #dc3545;
+        }
+
+        .your-hand {
+            border-left: 4px solid #28a745;
+        }
+
+        .deck-card {
+            background-color: #6c757d;
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .deck-card:hover {
+            transform: scale(1.05);
+            background-color: #5a6268;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(40, 167, 69, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+            }
+        }
+
         .back-button {
             position: absolute;
             top: 20px;
@@ -241,29 +317,37 @@
 
         <!-- Game Area -->
         <div class="game-area" id="game-area">
-            <h2>UNO Oyunu</h2>
+            <h2>🎯 UNO Oyunu</h2>
+            
+            <div class="game-info">
+                <div id="turn-indicator" class="turn-indicator">Oyun başlatılıyor...</div>
+                <div id="cards-remaining" class="cards-info">Deste: ♠️ Kartlar kaldı</div>
+            </div>
             
             <div class="game-board">
-                <div class="deck-container">
-                    <div class="card-placeholder">
-                        Deste
+                <div class="deck-container" title="Kart çekmek için tıkla">
+                    <div class="card-placeholder deck-card">
+                        📚<br>Deste
                     </div>
                 </div>
                 
-                <div id="discard-pile" class="card-placeholder discard-pile">
-                    Atma Yeri
+                <div class="arrow">➡️</div>
+                
+                <div id="discard-pile" class="card-placeholder discard-pile" title="Atılan kartlar">
+                    🗂️<br>Atma Yeri
                 </div>
             </div>
 
             <div class="player-hands">
-                <div class="hand">
-                    <p>Rakip Kartları</p>
+                <div class="hand opponent-hand">
+                    <p>🤖 Rakip Kartları</p>
                     <div id="opponent-cards" class="card-group"></div>
                 </div>
                 
-                <div class="hand">
-                    <p>Senin Kartların</p>
+                <div class="hand your-hand">
+                    <p>👤 Senin Kartların</p>
                     <div id="your-cards" class="card-group"></div>
+                    <small class="help-text">💡 Oynanabilir kartlar yeşil çerçeveli</small>
                 </div>
             </div>
         </div>
@@ -375,14 +459,28 @@
             opponentCardsContainer.innerHTML = '';
             discardPileContainer.innerHTML = '';
             
-            // Render your cards
+            // Render your cards (clickable)
             if (gameState.hands && gameState.hands[currentUserId]) {
-                gameState.hands[currentUserId].forEach(card => {
+                gameState.hands[currentUserId].forEach((card, index) => {
                     const cardEl = document.createElement("div");
                     cardEl.className = `card ${card.color}`;
                     cardEl.dataset.color = card.color;
                     cardEl.dataset.value = card.value;
-                    cardEl.textContent = card.value;
+                    cardEl.dataset.index = index;
+                    cardEl.textContent = card.value === 'wild' ? 'W' : card.value === 'wildDraw4' ? '+4' : card.value;
+                    
+                    // Kart oynama event'i
+                    cardEl.addEventListener('click', () => playCard(index));
+                    
+                    // Oynanabilir kart kontrolü
+                    if (canPlayCard(card)) {
+                        cardEl.style.cursor = 'pointer';
+                        cardEl.style.border = '2px solid #00ff00';
+                    } else {
+                        cardEl.style.cursor = 'not-allowed';
+                        cardEl.style.opacity = '0.6';
+                    }
+                    
                     yourCardsContainer.appendChild(cardEl);
                 });
             }
@@ -407,9 +505,142 @@
                 cardEl.className = `card ${topCard.color}`;
                 cardEl.dataset.color = topCard.color;
                 cardEl.dataset.value = topCard.value;
-                cardEl.textContent = topCard.value;
+                cardEl.textContent = topCard.value === 'wild' ? 'W' : topCard.value === 'wildDraw4' ? '+4' : topCard.value;
                 discardPileContainer.appendChild(cardEl);
             }
+
+            // Deck click handler (kart çekme)
+            const deckContainer = document.querySelector('.deck-container');
+            deckContainer.onclick = drawCard;
+            deckContainer.style.cursor = 'pointer';
+        }
+
+        // Game Logic Functions
+        function canPlayCard(card) {
+            if (!gameState.discardPile || gameState.discardPile.length === 0) return true;
+            
+            const topCard = gameState.discardPile[gameState.discardPile.length - 1];
+            
+            // Wild kartlar her zaman oynanabilir
+            if (card.color === 'black') return true;
+            
+            // Aynı renk veya aynı değer
+            return card.color === topCard.color || card.value === topCard.value;
+        }
+
+        async function playCard(cardIndex) {
+            if (!isMyTurn()) {
+                showMessage("Şu anda senin sıran değil!", 'error');
+                return;
+            }
+
+            const card = gameState.hands[currentUserId][cardIndex];
+            if (!canPlayCard(card)) {
+                showMessage("Bu kartı oynayamazsın!", 'error');
+                return;
+            }
+
+            try {
+                // Kartı elinden çıkar ve discard pile'a ekle
+                const newHand = [...gameState.hands[currentUserId]];
+                const playedCard = newHand.splice(cardIndex, 1)[0];
+                
+                const newDiscardPile = [...gameState.discardPile, playedCard];
+                const newHands = { 
+                    ...gameState.hands, 
+                    [currentUserId]: newHand 
+                };
+
+                // Sıradaki oyuncu
+                const nextPlayerIndex = (gameState.currentPlayerIndex + 1) % gameState.players.length;
+
+                const updateData = {
+                    hands: newHands,
+                    discard_pile: newDiscardPile,
+                    current_player_index: nextPlayerIndex
+                };
+
+                const { error } = await supabaseClient
+                    .from('games')
+                    .update(updateData)
+                    .eq('id', currentGameId);
+
+                if (error) {
+                    console.error('Play card error:', error);
+                    showMessage("Kart oynama hatası: " + error.message, 'error');
+                    return;
+                }
+
+                // Kazanma kontrolü
+                if (newHand.length === 0) {
+                    showMessage("🎉 Tebrikler! Kazandınız!", 'success');
+                }
+
+            } catch (error) {
+                console.error('Play card error:', error);
+                showMessage("Kart oynama hatası: " + error.message, 'error');
+            }
+        }
+
+        async function drawCard() {
+            if (!isMyTurn()) {
+                showMessage("Şu anda senin sıran değil!", 'error');
+                return;
+            }
+
+            if (!gameState.deck || gameState.deck.length === 0) {
+                showMessage("Deste boş!", 'error');
+                return;
+            }
+
+            try {
+                // Desteden kart çek
+                const newDeck = [...gameState.deck];
+                const drawnCard = newDeck.pop();
+                
+                const newHand = [...gameState.hands[currentUserId], drawnCard];
+                const newHands = { 
+                    ...gameState.hands, 
+                    [currentUserId]: newHand 
+                };
+
+                // Sıradaki oyuncu
+                const nextPlayerIndex = (gameState.currentPlayerIndex + 1) % gameState.players.length;
+
+                const updateData = {
+                    hands: newHands,
+                    deck: newDeck,
+                    current_player_index: nextPlayerIndex
+                };
+
+                const { error } = await supabaseClient
+                    .from('games')
+                    .update(updateData)
+                    .eq('id', currentGameId);
+
+                if (error) {
+                    console.error('Draw card error:', error);
+                    showMessage("Kart çekme hatası: " + error.message, 'error');
+                    return;
+                }
+
+                showMessage(`Kart çektin: ${drawnCard.value}`, 'success');
+
+            } catch (error) {
+                console.error('Draw card error:', error);
+                showMessage("Kart çekme hatası: " + error.message, 'error');
+            }
+        }
+
+        function isMyTurn() {
+            if (!gameState.players || !gameState.currentPlayerIndex === undefined) return false;
+            return gameState.players[gameState.currentPlayerIndex] === currentUserId;
+        }
+
+        function getCurrentPlayerName() {
+            if (!gameState.players || gameState.currentPlayerIndex === undefined) return '';
+            const currentPlayerId = gameState.players[gameState.currentPlayerIndex];
+            return currentPlayerId === currentUserId ? 'Sen' : 'Rakip';
         }
 
         function renderGame(game) {
