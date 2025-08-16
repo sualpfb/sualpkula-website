@@ -142,11 +142,14 @@ function listenForGameUpdates(gameId) {
 
 // Yeni oyun oluşturur
 async function createGame() {
+    if (!currentUserEmail) {
+        statusMessage.textContent = "Kullanıcı bilgileri yükleniyor, lütfen bekleyin.";
+        return;
+    }
     const deck = new Deck();
     const yourHand = deck.deal(7);
     const firstCard = deck.draw();
     
-    // Oyun durumunu oluştur
     const newGame = {
         players: [currentUserEmail],
         player_count: 1,
@@ -173,6 +176,10 @@ async function createGame() {
 
 // Mevcut bir oyuna katılır
 async function joinGame() {
+    if (!currentUserEmail) {
+        statusMessage.textContent = "Kullanıcı bilgileri yükleniyor, lütfen bekleyin.";
+        return;
+    }
     const gameId = gameIdInput.value;
     if (!gameId) {
         statusMessage.textContent = "Lütfen bir oyun ID'si girin.";
@@ -187,13 +194,18 @@ async function joinGame() {
         return;
     }
 
-    // Eğer oyun zaten doluysa
     if (data.players.length >= 4) {
         statusMessage.textContent = "Oyun zaten dolu.";
         return;
     }
     
-    // Oyuncuyu ekle
+    if (data.players.includes(currentUserEmail)) {
+        statusMessage.textContent = "Bu oyuna zaten katıldınız.";
+        renderGame(data);
+        listenForGameUpdates(gameId);
+        return;
+    }
+    
     const newPlayers = [...data.players, currentUserEmail];
     const newHands = { ...data.hands, [currentUserEmail]: data.deck.splice(0, 7) };
     
@@ -216,19 +228,26 @@ async function joinGame() {
     listenForGameUpdates(gameId);
 }
 
-// Event dinleyicileri
-createGameBtn.addEventListener('click', createGame);
-joinGameBtn.addEventListener('click', joinGame);
-
-// Sayfa yüklendiğinde kullanıcıyı al
+// Sayfa yüklendiğinde kullanıcıyı al ve butonları etkinleştir
 window.addEventListener('DOMContentLoaded', async () => {
+    statusMessage.textContent = "Oturum kontrol ediliyor...";
+    createGameBtn.disabled = true;
+    joinGameBtn.disabled = true;
+
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error || !user) {
         alert("Oturum süresi dolmuş veya giriş yapılmamış. Lütfen tekrar giriş yapın.");
         window.location.href = "index.html";
         return;
     }
+
     currentUserEmail = user.email;
     statusMessage.textContent = "Hazır.";
+    createGameBtn.disabled = false;
+    joinGameBtn.disabled = false;
     console.log("Kullanıcı doğrulandı:", currentUserEmail);
 });
+
+// Event dinleyicileri
+createGameBtn.addEventListener('click', createGame);
+joinGameBtn.addEventListener('click', joinGame);
