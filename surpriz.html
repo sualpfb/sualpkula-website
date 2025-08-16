@@ -1,4 +1,12 @@
-<!DOCTYPE html>
+async function joinGame() {
+            if (!currentUserId) {
+                showMessage("Kullanıcı bilgileri yükleniyor, lütfen bekleyin.", 'error');
+                return;
+            }
+            
+            const gameId = gameIdInput.value.trim();
+            if (!gameId) {
+                showMessage("Lütfen bir oyun ID'si<!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
@@ -317,14 +325,38 @@
 
         <!-- Game Area -->
         <div class="game-area" id="game-area">
-            <h2>🎯 UNO Oyunu</h2>
-            
-            <div class="game-info">
-                <div id="turn-indicator" class="turn-indicator">Oyun başlatılıyor...</div>
-                <div id="cards-remaining" class="cards-info">Deste: ♠️ Kartlar kaldı</div>
+            <div class="game-header">
+                <h2>🎯 UNO Oyunu</h2>
+                <div class="game-id-display">
+                    <strong>Oyun ID: <span id="current-game-id">-</span></strong>
+                    <button id="copy-game-id" class="copy-btn" title="Kopyala">📋</button>
+                </div>
             </div>
             
-            <div class="game-board">
+            <div class="game-info">
+                <div id="turn-indicator" class="turn-indicator">Oyuncular bekleniyor...</div>
+                <div id="cards-remaining" class="cards-info">Deste: - kart kaldı</div>
+            </div>
+
+            <div class="players-waiting" id="players-waiting">
+                <h3>🎮 Oyuncu Durumu</h3>
+                <div id="players-list" class="players-list">
+                    <div class="player-slot">1. 👤 Sen</div>
+                    <div class="player-slot empty">2. ⏳ Bekleniyor...</div>
+                    <div class="player-slot empty">3. ⏳ Bekleniyor...</div>
+                    <div class="player-slot empty">4. ⏳ Bekleniyor...</div>
+                </div>
+                <div class="waiting-controls">
+                    <button id="start-game-btn" class="btn-primary" disabled>
+                        🚀 Oyunu Başlat (Min 2 oyuncu)
+                    </button>
+                    <button id="leave-game-btn" class="btn-secondary">
+                        🚪 Oyundan Ayrıl
+                    </button>
+                </div>
+            </div>
+            
+            <div class="game-board" id="game-board" style="display: none;">
                 <div class="deck-container" title="Kart çekmek için tıkla">
                     <div class="card-placeholder deck-card">
                         📚<br>Deste
@@ -338,14 +370,13 @@
                 </div>
             </div>
 
-            <div class="player-hands">
-                <div class="hand opponent-hand">
-                    <p>🤖 Rakip Kartları</p>
-                    <div id="opponent-cards" class="card-group"></div>
+            <div class="player-hands" id="player-hands" style="display: none;">
+                <div class="opponents-container">
+                    <div id="all-opponents" class="opponents-grid"></div>
                 </div>
                 
                 <div class="hand your-hand">
-                    <p>👤 Senin Kartların</p>
+                    <p>👤 Senin Kartların (<span id="your-card-count">0</span> kart)</p>
                     <div id="your-cards" class="card-group"></div>
                     <small class="help-text">💡 Oynanabilir kartlar yeşil çerçeveli</small>
                 </div>
@@ -423,11 +454,14 @@
 
         // Game State
         const gameState = {
+            id: null,
             deck: [],
             players: [],
             hands: {},
             discardPile: [],
-            currentPlayerIndex: 0
+            currentPlayerIndex: 0,
+            status: 'waiting', // waiting, playing, finished
+            maxPlayers: 4
         };
 
         // DOM Elements
@@ -437,6 +471,12 @@
         const joinGameBtn = document.getElementById('join-game-btn');
         const gameIdInput = document.getElementById('game-id-input');
         const statusMessage = document.getElementById('status-message');
+        const startGameBtn = document.getElementById('start-game-btn');
+        const leaveGameBtn = document.getElementById('leave-game-btn');
+        const copyGameIdBtn = document.getElementById('copy-game-id');
+        const playersWaiting = document.getElementById('players-waiting');
+        const gameBoard = document.getElementById('game-board');
+        const playerHands = document.getElementById('player-hands');
 
         // Utility Functions
         function showMessage(message, type = 'info') {
@@ -451,13 +491,16 @@
         // Render Functions
         function renderCards() {
             const yourCardsContainer = document.getElementById("your-cards");
-            const opponentCardsContainer = document.getElementById("opponent-cards");
-            const discardPileContainer = document.getElementById("discard-pile");
+            const allOpponentsContainer = document.getElementById("all-opponents");
 
             // Clear containers
             yourCardsContainer.innerHTML = '';
-            opponentCardsContainer.innerHTML = '';
-            discardPileContainer.innerHTML = '';
+            allOpponentsContainer.innerHTML = '';
+            
+            // Update card counts
+            const yourCardCount = gameState.hands[currentUserId] ? gameState.hands[currentUserId].length : 0;
+            document.getElementById('your-card-count').textContent = yourCardCount;
+            document.getElementById('cards-remaining').textContent = `Deste: ${gameState.deck.length} kart kaldı`;
             
             // Render your cards (clickable)
             if (gameState.hands && gameState.hands[currentUserId]) {
@@ -473,32 +516,50 @@
                     cardEl.addEventListener('click', () => playCard(index));
                     
                     // Oynanabilir kart kontrolü
-                    if (canPlayCard(card)) {
+                    if (canPlayCard(card) && isMyTurn() && gameState.status === 'playing') {
                         cardEl.style.cursor = 'pointer';
                         cardEl.style.border = '2px solid #00ff00';
+                        cardEl.title = 'Oynamak için tıkla';
                     } else {
                         cardEl.style.cursor = 'not-allowed';
                         cardEl.style.opacity = '0.6';
+                        cardEl.title = 'Bu kartı şu anda oynayamazsın';
                     }
                     
                     yourCardsContainer.appendChild(cardEl);
                 });
             }
 
-            // Render opponent cards (card backs)
-            if (gameState.players) {
-                gameState.players.filter(p => p !== currentUserId).forEach(opponentId => {
-                    const numCards = gameState.hands && gameState.hands[opponentId] ? gameState.hands[opponentId].length : 0;
-                    for (let i = 0; i < numCards; i++) {
-                        const cardEl = document.createElement("div");
-                        cardEl.className = 'card card-back';
-                        cardEl.textContent = 'UNO';
-                        opponentCardsContainer.appendChild(cardEl);
-                    }
-                });
-            }
+            // Render opponent cards (all opponents)
+            gameState.players.filter(p => p !== currentUserId).forEach((opponentId, index) => {
+                const numCards = gameState.hands && gameState.hands[opponentId] ? gameState.hands[opponentId].length : 0;
+                
+                const opponentDiv = document.createElement('div');
+                opponentDiv.className = 'opponent-container';
+                opponentDiv.innerHTML = `
+                    <div class="opponent-info">
+                        <strong>${index === 0 ? '🤖 Oyuncu 2' : index === 1 ? '🎮 Oyuncu 3' : '🎯 Oyuncu 4'}</strong>
+                        <span>(${numCards} kart)</span>
+                        ${gameState.players[gameState.currentPlayerIndex] === opponentId ? '<span class="current-turn">🔥 Sırası</span>' : ''}
+                    </div>
+                    <div class="opponent-cards"></div>
+                `;
+                
+                const opponentCardsContainer = opponentDiv.querySelector('.opponent-cards');
+                for (let i = 0; i < numCards; i++) {
+                    const cardEl = document.createElement("div");
+                    cardEl.className = 'card card-back';
+                    cardEl.textContent = 'UNO';
+                    opponentCardsContainer.appendChild(cardEl);
+                }
+                
+                allOpponentsContainer.appendChild(opponentDiv);
+            });
 
             // Render discard pile
+            const discardPileContainer = document.getElementById("discard-pile");
+            discardPileContainer.innerHTML = '';
+            
             if (gameState.discardPile && gameState.discardPile.length > 0) {
                 const topCard = gameState.discardPile[gameState.discardPile.length - 1];
                 const cardEl = document.createElement("div");
@@ -507,12 +568,46 @@
                 cardEl.dataset.value = topCard.value;
                 cardEl.textContent = topCard.value === 'wild' ? 'W' : topCard.value === 'wildDraw4' ? '+4' : topCard.value;
                 discardPileContainer.appendChild(cardEl);
+            } else {
+                discardPileContainer.innerHTML = '🗂️<br>Atma Yeri';
             }
 
             // Deck click handler (kart çekme)
             const deckContainer = document.querySelector('.deck-container');
-            deckContainer.onclick = drawCard;
-            deckContainer.style.cursor = 'pointer';
+            if (gameState.status === 'playing') {
+                deckContainer.onclick = drawCard;
+                deckContainer.style.cursor = isMyTurn() ? 'pointer' : 'not-allowed';
+                deckContainer.style.opacity = isMyTurn() ? '1' : '0.6';
+            }
+        }
+
+        function renderPlayersList() {
+            const playersList = document.getElementById('players-list');
+            playersList.innerHTML = '';
+            
+            for (let i = 0; i < 4; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'player-slot';
+                
+                if (i < gameState.players.length) {
+                    const playerId = gameState.players[i];
+                    const isMe = playerId === currentUserId;
+                    slot.innerHTML = `${i + 1}. ${isMe ? '👤 Sen' : '🎮 Oyuncu ' + (i + 1)} ✅`;
+                    slot.classList.add('filled');
+                } else {
+                    slot.innerHTML = `${i + 1}. ⏳ Bekleniyor...`;
+                    slot.classList.add('empty');
+                }
+                
+                playersList.appendChild(slot);
+            }
+            
+            // Start button kontrolü
+            const canStart = gameState.players.length >= 2;
+            startGameBtn.disabled = !canStart;
+            startGameBtn.textContent = canStart ? 
+                `🚀 Oyunu Başlat (${gameState.players.length} oyuncu)` : 
+                '🚀 Oyunu Başlat (Min 2 oyuncu)';
         }
 
         // Game Logic Functions
@@ -671,7 +766,6 @@
                 return;
             }
 
-            // Button'u disable et
             createGameBtn.disabled = true;
             const originalText = createGameBtn.textContent;
             createGameBtn.textContent = 'Oluşturuluyor...';
@@ -679,98 +773,148 @@
             try {
                 showMessage("Oyun oluşturuluyor...", 'info');
                 
-                // Test için basit veri yapısı
-                const testGame = {
+                const newGame = {
                     players: [currentUserId],
-                    player_count: 1,
+                    player_count: 4, // Maksimum 4 oyuncu
                     current_player_index: 0,
                     deck: [],
                     discard_pile: [],
                     hands: {},
-                    state: { status: 'waiting' }
+                    status: 'waiting'
                 };
 
-                console.log('Creating test game with data:', testGame);
-                console.log('Current user ID:', currentUserId);
+                console.log('Creating game with data:', newGame);
 
-                // İlk önce basit bir insert deneyelim
                 const { data, error } = await supabaseClient
                     .from('games')
-                    .insert(testGame)
+                    .insert(newGame)
                     .select()
                     .single();
 
-                console.log('Insert response:', { data, error });
-
                 if (error) {
-                    console.error('Game creation error details:', {
-                        message: error.message,
-                        details: error.details,
-                        hint: error.hint,
-                        code: error.code
-                    });
+                    console.error('Game creation error:', error);
                     showMessage("Oyun oluşturma hatası: " + error.message, 'error');
-                    return;
-                }
-
-                if (!data) {
-                    console.error('No data returned from insert');
-                    showMessage("Veri döndürülmedi, RLS politikalarını kontrol edin", 'error');
                     return;
                 }
 
                 console.log('Game created successfully:', data);
                 currentGameId = data.id;
-                showMessage(`Oyun oluşturuldu! ID: ${data.id}`, 'success');
-                
-                // Şimdi gerçek oyun verilerini ekleyelim
-                await initializeGameData(data.id);
+                renderGame(data);
+                listenForGameUpdates(data.id);
                 
             } catch (error) {
                 console.error('Unexpected error:', error);
                 showMessage("Beklenmeyen hata: " + error.message, 'error');
             } finally {
-                // Button'u tekrar aktif et
                 createGameBtn.disabled = false;
                 createGameBtn.textContent = originalText;
             }
         }
 
-        async function initializeGameData(gameId) {
+        async function startGame() {
+            if (gameState.players.length < 2) {
+                showMessage("En az 2 oyuncu gerekli!", 'error');
+                return;
+            }
+
+            startGameBtn.disabled = true;
+            const originalText = startGameBtn.textContent;
+            startGameBtn.textContent = 'Başlatılıyor...';
+
             try {
                 const deck = new Deck();
-                const yourHand = deck.deal(7);
+                const hands = {};
+                
+                // Her oyuncuya 7 kart dağıt
+                gameState.players.forEach(playerId => {
+                    hands[playerId] = deck.deal(7);
+                });
+                
                 const firstCard = deck.draw();
                 
                 const gameData = {
                     deck: deck.cards,
                     discard_pile: [firstCard],
-                    hands: { [currentUserId]: yourHand },
-                    player_count: 2,
-                    state: { status: 'playing' }
+                    hands: hands,
+                    status: 'playing'
                 };
 
-                const { data, error } = await supabaseClient
+                const { error } = await supabaseClient
                     .from('games')
                     .update(gameData)
-                    .eq('id', gameId)
-                    .select()
-                    .single();
+                    .eq('id', currentGameId);
 
                 if (error) {
-                    console.error('Game initialization error:', error);
+                    console.error('Game start error:', error);
                     showMessage("Oyun başlatma hatası: " + error.message, 'error');
                     return;
                 }
 
-                console.log('Game initialized successfully:', data);
-                renderGame(data);
-                listenForGameUpdates(gameId);
+                showMessage("🎯 Oyun başladı! İyi şanslar!", 'success');
                 
             } catch (error) {
-                console.error('Game initialization error:', error);
+                console.error('Game start error:', error);
                 showMessage("Oyun başlatma hatası: " + error.message, 'error');
+            } finally {
+                startGameBtn.disabled = false;
+                startGameBtn.textContent = originalText;
             }
+        }
+
+        async function leaveGame() {
+            if (!currentGameId) return;
+            
+            const confirmLeave = confirm("Oyundan ayrılmak istediğinize emin misiniz?");
+            if (!confirmLeave) return;
+
+            try {
+                const newPlayers = gameState.players.filter(p => p !== currentUserId);
+                const newHands = { ...gameState.hands };
+                delete newHands[currentUserId];
+
+                const updateData = {
+                    players: newPlayers,
+                    hands: newHands,
+                    player_count: newPlayers.length
+                };
+
+                // Eğer oyuncu kalmadıysa oyunu sil
+                if (newPlayers.length === 0) {
+                    await supabaseClient.from('games').delete().eq('id', currentGameId);
+                } else {
+                    await supabaseClient.from('games').update(updateData).eq('id', currentGameId);
+                }
+
+                // Cleanup
+                if (gameSubscription) {
+                    gameSubscription.unsubscribe();
+                    gameSubscription = null;
+                }
+
+                currentGameId = null;
+                
+                // Lobby'ye dön
+                gameArea.style.display = 'none';
+                lobbySection.style.display = 'block';
+                showMessage("Oyundan ayrıldınız.", 'info');
+                
+            } catch (error) {
+                console.error('Leave game error:', error);
+                showMessage("Oyundan ayrılma hatası: " + error.message, 'error');
+            }
+        }
+
+        function copyGameId() {
+            const gameId = document.getElementById('current-game-id').textContent;
+            navigator.clipboard.writeText(gameId).then(() => {
+                showMessage("Oyun ID kopyalandı! 📋", 'success');
+                copyGameIdBtn.textContent = '✅';
+                setTimeout(() => {
+                    copyGameIdBtn.textContent = '📋';
+                }, 2000);
+            }).catch(() => {
+                showMessage("Kopyalama başarısız.", 'error');
+            });
         }
 
         async function joinGame() {
