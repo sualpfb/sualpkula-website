@@ -7,10 +7,18 @@
 </head>
 <body>
     <div class="content-box">
-        <h1>UNO Oyunu</h1>
-
-        <div class="game-area">
-            
+        <h1>Çok Oyunculu UNO</h1>
+        <div id="lobby-section">
+            <p>Oyun başlatmak veya mevcut bir oyuna katılmak için birini seçin.</p>
+            <div class="lobby-actions">
+                <button id="create-game-btn" class="btn-pink">Yeni Oyun Oluştur</button>
+                <input type="text" id="game-id-input" placeholder="Oyun ID girin...">
+                <button id="join-game-btn" class="btn-pink">Oyuna Katıl</button>
+            </div>
+            <p id="status-message" style="margin-top: 20px; font-weight: bold;"></p>
+        </div>
+        
+        <div class="game-area" style="display: none;">
             <div class="game-board">
                 <div class="deck-container">
                     <div class="deck card-placeholder" id="deck"></div>
@@ -29,7 +37,6 @@
                     <div class="card-group" id="your-cards"></div>
                 </div>
             </div>
-
         </div>
         
         <a href="home.html" style="margin-top: 20px; display: inline-block;">← Ana Menüye Dön</a>
