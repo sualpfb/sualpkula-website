@@ -2,62 +2,641 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>Sürpriz Oyun: UNO!</title>
-    <link rel="stylesheet" href="styles/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UNO Oyunu</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* UNO Oyunu Stilleri */
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #B2D8F7;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .game-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Lobby Section */
+        .lobby-section {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            max-width: 500px;
+            margin: 50px auto;
+        }
+
+        .lobby-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"], input[type="email"], input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 17px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin: 5px 0;
+        }
+
+        .btn-primary {
+            background-color: #1877F2;
+            color: white;
+            font-weight: 600;
+        }
+
+        .btn-primary:hover {
+            background-color: #0f5dc8;
+        }
+
+        .btn-secondary {
+            background-color: #28a745;
+            color: white;
+            font-weight: 600;
+        }
+
+        .btn-secondary:hover {
+            background-color: #218838;
+        }
+
+        .status-message {
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 5px;
+            color: #333;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+        }
+
+        /* Game Area */
+        .game-area {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .game-board {
+            display: flex;
+            justify-content: center;
+            gap: 50px;
+            margin-bottom: 20px;
+        }
+
+        .card-placeholder {
+            width: 80px;
+            height: 120px;
+            border: 2px dashed #999;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #666;
+            background-color: #eee;
+        }
+
+        .deck-container {
+            position: relative;
+        }
+
+        .discard-pile {
+            border-color: #667eea;
+        }
+
+        .player-hands {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .hand {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            width: 100%;
+            text-align: center;
+        }
+
+        .hand p {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .card {
+            width: 60px;
+            height: 90px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            margin: 2px;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card-group {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        /* Kart renkleri */
+        .card.red { background-color: #e74c3c; }
+        .card.blue { background-color: #3498db; }
+        .card.green { background-color: #2ecc71; }
+        .card.yellow { background-color: #f1c40f; color: #333; }
+        .card.black { background-color: #34495e; }
+
+        .card-back {
+            background-color: #c0392b;
+            border: 1px solid #a03025;
+        }
+
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: auto;
+        }
+
+        .back-button:hover {
+            background-color: #c82333;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-color: #f5c6cb;
+        }
+
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border-color: #c3e6cb;
+        }
+    </style>
 </head>
 <body>
-    <div class="content-box">
-        <h1>Çok Oyunculu UNO</h1>
-        <div id="lobby-section">
-            <p>Oyun başlatmak veya mevcut bir oyuna katılmak için birini seçin.</p>
-            <div class="lobby-actions">
-                <button id="create-game-btn" class="btn-pink">Yeni Oyun Oluştur</button>
-                <input type="text" id="game-id-input" placeholder="Oyun ID girin...">
-                <button id="join-game-btn" class="btn-pink">Oyuna Katıl</button>
-            </div>
-            <p id="status-message" style="margin-top: 20px; font-weight: bold;"></p>
-        </div>
+    <div class="game-container">
+        <button class="back-button" onclick="goBack()">← Ana Sayfaya Dön</button>
         
-        <div class="game-area" style="display: none;">
+        <!-- Lobby Section -->
+        <div id="lobby-section" class="lobby-section">
+            <h2>🎯 UNO Oyunu</h2>
+            <div id="status-message" class="status-message">Yükleniyor...</div>
+            
+            <button id="create-game-btn" class="btn-primary" disabled>
+                🎮 Yeni Oyun Oluştur
+            </button>
+            
+            <div style="margin: 20px 0;">
+                <input type="text" id="game-id-input" placeholder="Oyun ID'si girin" maxlength="10">
+                <button id="join-game-btn" class="btn-secondary" disabled>
+                    🚀 Oyuna Katıl
+                </button>
+            </div>
+        </div>
+
+        <!-- Game Area -->
+        <div class="game-area" id="game-area">
+            <h2>UNO Oyunu</h2>
+            
             <div class="game-board">
                 <div class="deck-container">
-                    <div class="deck card-placeholder" id="deck"></div>
-                    <div class="discard-pile card-placeholder" id="discard-pile"></div>
+                    <div class="card-placeholder">
+                        Deste
+                    </div>
+                </div>
+                
+                <div id="discard-pile" class="card-placeholder discard-pile">
+                    Atma Yeri
                 </div>
             </div>
 
             <div class="player-hands">
-                <div class="hand opponent-hand" id="opponent-hand">
-                    <p>Rakibin Eli</p>
-                    <div class="card-back-group" id="opponent-cards"></div>
+                <div class="hand">
+                    <p>Rakip Kartları</p>
+                    <div id="opponent-cards" class="card-group"></div>
                 </div>
-
-                <div class="hand player-hand" id="player-hand">
-                    <p>Senin Elin</p>
-                    <div class="card-group" id="your-cards"></div>
+                
+                <div class="hand">
+                    <p>Senin Kartların</p>
+                    <div id="your-cards" class="card-group"></div>
                 </div>
             </div>
         </div>
-        
-        <a href="home.html" style="margin-top: 20px; display: inline-block;">← Ana Menüye Dön</a>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-    <script src="scripts/uno.js"></script>
     <script>
+        // Supabase Configuration
         const SUPABASE_URL = "https://bvlyzxljieftbkzkdwzv.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2bHl6eGxqaWVmdGJremtkd3p2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4ODQxNTgsImV4cCI6MjA2NjQ2MDE1OH0.mJEavNb2WC_0pBpg8KJq0ABc2hquYTewoge38U5P7dw";
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        async function checkSession() {
-            const { data: { user }, error } = await supabase.auth.getUser();
-            if (error || !user) {
-                alert("Oturum süresi dolmuş veya giriş yapılmamış. Lütfen tekrar giriş yapın.");
-                window.location.href = "index.html";
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // Global Variables
+        let currentUserEmail = null;
+        let currentUserId = null;
+        let currentGameId = null;
+        let gameSubscription = null;
+
+        // Game Constants
+        const colors = ["red", "green", "blue", "yellow"];
+        const values = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "skip", "reverse", "draw2"];
+        const wildCards = ["wild", "wildDraw4"];
+
+        // Card Class
+        class Card {
+            constructor(color, value) {
+                this.color = color;
+                this.value = value;
             }
         }
-        window.onload = checkSession;
+
+        // Deck Class
+        class Deck {
+            constructor() {
+                this.cards = [];
+                this.createDeck();
+                this.shuffle();
+            }
+            
+            createDeck() {
+                // Regular cards
+                colors.forEach(color => {
+                    this.cards.push(new Card(color, "0"));
+                    for (let i = 0; i < 2; i++) {
+                        values.slice(1).forEach(value => {
+                            this.cards.push(new Card(color, value));
+                        });
+                    }
+                });
+                
+                // Wild cards
+                for (let i = 0; i < 4; i++) {
+                    this.cards.push(new Card("black", "wild"));
+                    this.cards.push(new Card("black", "wildDraw4"));
+                }
+            }
+            
+            shuffle() {
+                for (let i = this.cards.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [this.cards[i], this.cards[j]] = [this.cards[j], this.cards[i]];
+                }
+            }
+            
+            deal(numCards) {
+                return this.cards.splice(0, numCards);
+            }
+            
+            draw() {
+                return this.cards.pop();
+            }
+        }
+
+        // Game State
+        const gameState = {
+            deck: [],
+            players: [],
+            hands: {},
+            discardPile: [],
+            currentPlayerIndex: 0
+        };
+
+        // DOM Elements
+        const lobbySection = document.getElementById('lobby-section');
+        const gameArea = document.getElementById('game-area');
+        const createGameBtn = document.getElementById('create-game-btn');
+        const joinGameBtn = document.getElementById('join-game-btn');
+        const gameIdInput = document.getElementById('game-id-input');
+        const statusMessage = document.getElementById('status-message');
+
+        // Utility Functions
+        function showMessage(message, type = 'info') {
+            statusMessage.textContent = message;
+            statusMessage.className = `status-message ${type}`;
+        }
+
+        function goBack() {
+            window.location.href = 'home.html';
+        }
+
+        // Render Functions
+        function renderCards() {
+            const yourCardsContainer = document.getElementById("your-cards");
+            const opponentCardsContainer = document.getElementById("opponent-cards");
+            const discardPileContainer = document.getElementById("discard-pile");
+
+            // Clear containers
+            yourCardsContainer.innerHTML = '';
+            opponentCardsContainer.innerHTML = '';
+            discardPileContainer.innerHTML = '';
+            
+            // Render your cards
+            if (gameState.hands && gameState.hands[currentUserId]) {
+                gameState.hands[currentUserId].forEach(card => {
+                    const cardEl = document.createElement("div");
+                    cardEl.className = `card ${card.color}`;
+                    cardEl.dataset.color = card.color;
+                    cardEl.dataset.value = card.value;
+                    cardEl.textContent = card.value;
+                    yourCardsContainer.appendChild(cardEl);
+                });
+            }
+
+            // Render opponent cards (card backs)
+            if (gameState.players) {
+                gameState.players.filter(p => p !== currentUserId).forEach(opponentId => {
+                    const numCards = gameState.hands && gameState.hands[opponentId] ? gameState.hands[opponentId].length : 0;
+                    for (let i = 0; i < numCards; i++) {
+                        const cardEl = document.createElement("div");
+                        cardEl.className = 'card card-back';
+                        cardEl.textContent = 'UNO';
+                        opponentCardsContainer.appendChild(cardEl);
+                    }
+                });
+            }
+
+            // Render discard pile
+            if (gameState.discardPile && gameState.discardPile.length > 0) {
+                const topCard = gameState.discardPile[gameState.discardPile.length - 1];
+                const cardEl = document.createElement("div");
+                cardEl.className = `card ${topCard.color}`;
+                cardEl.dataset.color = topCard.color;
+                cardEl.dataset.value = topCard.value;
+                cardEl.textContent = topCard.value;
+                discardPileContainer.appendChild(cardEl);
+            }
+        }
+
+        function renderGame(game) {
+            console.log('Rendering game:', game);
+            
+            // Update game state
+            gameState.deck = game.deck || [];
+            gameState.players = game.players || [];
+            gameState.hands = game.hands || {};
+            gameState.discardPile = game.discard_pile || [];
+            gameState.currentPlayerIndex = game.current_player_index || 0;
+            
+            // Show game area
+            lobbySection.style.display = 'none';
+            gameArea.style.display = 'flex';
+            
+            // Render cards
+            renderCards();
+            
+            // Update status
+            showMessage(`Oyun ID: ${game.id} | Oyuncular: ${game.players.length}/${game.player_count}`, 'success');
+        }
+
+        // Game Functions
+        async function createGame() {
+            if (!currentUserId) {
+                showMessage("Kullanıcı bilgileri yükleniyor, lütfen bekleyin.", 'error');
+                return;
+            }
+
+            try {
+                showMessage("Oyun oluşturuluyor...", 'info');
+                
+                const deck = new Deck();
+                const yourHand = deck.deal(7);
+                const firstCard = deck.draw();
+                
+                const newGame = {
+                    players: [currentUserId],
+                    player_count: 2, // 2 oyunculu oyun
+                    deck: deck.cards,
+                    discard_pile: [firstCard],
+                    hands: { [currentUserId]: yourHand },
+                    current_player_index: 0
+                };
+
+                console.log('Creating game with data:', newGame);
+
+                const { data, error } = await supabase
+                    .from('games')
+                    .insert(newGame)
+                    .select()
+                    .single();
+
+                if (error) {
+                    console.error('Game creation error:', error);
+                    showMessage("Oyun oluşturma hatası: " + error.message, 'error');
+                    return;
+                }
+
+                console.log('Game created successfully:', data);
+                currentGameId = data.id;
+                renderGame(data);
+                listenForGameUpdates(data.id);
+                
+            } catch (error) {
+                console.error('Unexpected error:', error);
+                showMessage("Beklenmeyen hata: " + error.message, 'error');
+            }
+        }
+
+        async function joinGame() {
+            if (!currentUserId) {
+                showMessage("Kullanıcı bilgileri yükleniyor, lütfen bekleyin.", 'error');
+                return;
+            }
+            
+            const gameId = gameIdInput.value.trim();
+            if (!gameId) {
+                showMessage("Lütfen bir oyun ID'si girin.", 'error');
+                return;
+            }
+
+            try {
+                showMessage("Oyuna katılınıyor...", 'info');
+
+                const { data, error } = await supabase
+                    .from('games')
+                    .select('*')
+                    .eq('id', gameId)
+                    .single();
+
+                if (error) {
+                    console.error('Game fetch error:', error);
+                    showMessage("Oyun bulunamadı veya erişim hatası.", 'error');
+                    return;
+                }
+
+                console.log('Found game:', data);
+
+                if (data.player_count >= 4) {
+                    showMessage("Oyun zaten dolu.", 'error');
+                    return;
+                }
+                
+                if (data.players.includes(currentUserId)) {
+                    showMessage("Bu oyuna zaten katıldınız.", 'success');
+                    currentGameId = gameId;
+                    renderGame(data);
+                    listenForGameUpdates(gameId);
+                    return;
+                }
+                
+                // Add player to game
+                const newPlayers = [...data.players, currentUserId];
+                const remainingDeck = [...data.deck];
+                const newHand = remainingDeck.splice(0, 7);
+                const newHands = { ...data.hands, [currentUserId]: newHand };
+                
+                const { error: updateError, data: updatedData } = await supabase
+                    .from('games')
+                    .update({
+                        players: newPlayers,
+                        hands: newHands,
+                        deck: remainingDeck,
+                        player_count: newPlayers.length
+                    })
+                    .eq('id', gameId)
+                    .select()
+                    .single();
+                
+                if (updateError) {
+                    console.error('Game update error:', updateError);
+                    showMessage("Oyuna katılırken hata oluştu: " + updateError.message, 'error');
+                    return;
+                }
+
+                console.log('Joined game successfully:', updatedData);
+                currentGameId = gameId;
+                renderGame(updatedData);
+                listenForGameUpdates(gameId);
+                
+            } catch (error) {
+                console.error('Unexpected error:', error);
+                showMessage("Beklenmeyen hata: " + error.message, 'error');
+            }
+        }
+
+        function listenForGameUpdates(gameId) {
+            // Clean up existing subscription
+            if (gameSubscription) {
+                gameSubscription.unsubscribe();
+            }
+
+            console.log('Setting up real-time subscription for game:', gameId);
+            
+            gameSubscription = supabase
+                .channel(`game:${gameId}`)
+                .on('postgres_changes', { 
+                    event: 'UPDATE', 
+                    schema: 'public', 
+                    table: 'games', 
+                    filter: `id=eq.${gameId}` 
+                }, payload => {
+                    console.log('Real-time update received:', payload.new);
+                    renderGame(payload.new);
+                })
+                .subscribe((status) => {
+                    console.log('Subscription status:', status);
+                });
+        }
+
+        // Authentication and Initialization
+        async function initializeAuth() {
+            try {
+                showMessage("Oturum kontrol ediliyor...", 'info');
+                createGameBtn.disabled = true;
+                joinGameBtn.disabled = true;
+
+                const { data: { user }, error } = await supabase.auth.getUser();
+                
+                if (error) {
+                    console.error('Auth error:', error);
+                    throw error;
+                }
+
+                if (!user) {
+                    throw new Error('User not found');
+                }
+
+                currentUserEmail = user.email;
+                currentUserId = user.id;
+                
+                console.log("User authenticated:", { email: currentUserEmail, id: currentUserId });
+                
+                showMessage("Hazır! Oyun oluşturabilir veya oyuna katılabilirsiniz.", 'success');
+                createGameBtn.disabled = false;
+                joinGameBtn.disabled = false;
+                
+            } catch (error) {
+                console.error('Auth initialization failed:', error);
+                showMessage("Oturum hatası. Ana sayfaya dönülüyor...", 'error');
+                setTimeout(() => {
+                    window.location.href = "home.html";
+                }, 2000);
+            }
+        }
+
+        // Event Listeners
+        createGameBtn.addEventListener('click', createGame);
+        joinGameBtn.addEventListener('click', joinGame);
+
+        gameIdInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                joinGame();
+            }
+        });
+
+        // Initialize when page loads
+        window.addEventListener('DOMContentLoaded', initializeAuth);
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (gameSubscription) {
+                gameSubscription.unsubscribe();
+            }
+        });
     </script>
 </body>
 </html>
-
