@@ -1,24 +1,55 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8">
-  <title>Sürpriz</title>
-  <link rel="stylesheet" href="styles/style.css">
-  <script>
-    const user = sessionStorage.getItem("user");
-    if (user !== "admin") {
-      alert("Bu sayfaya yalnızca giriş yapmış kullanıcılar erişebilir.");
-      window.location.href = "index.html";
-    }
-  </script>
+    <meta charset="UTF-8">
+    <title>Sürpriz Oyun: UNO!</title>
+    <link rel="stylesheet" href="styles/style.css">
 </head>
 <body>
-  <div class="content-box">
-    <h1>🎉 Sürpriz İçerik 🎉</h1>
-    <p>SÜRPRİZZZZZZZZZZZZZZZ!</p>
-    <iframe width="300" height="170" src="https://youtu.be/nmIdZozIEW4" allowfullscreen></iframe>
-    <p>Şaka bir yana, yakında burada özel içerikler olacak :)</p>
-    <a href="home.html">← Ana Menüye Dön</a>
-  </div>
+    <div class="content-box">
+        <h1>UNO Oyunu</h1>
+
+        <div class="game-area">
+            
+            <div class="game-board">
+                <div class="deck-container">
+                    <div class="deck card-placeholder" id="deck"></div>
+                    <div class="discard-pile card-placeholder" id="discard-pile"></div>
+                </div>
+            </div>
+
+            <div class="player-hands">
+                <div class="hand opponent-hand" id="opponent-hand">
+                    <p>Rakibin Eli</p>
+                    <div class="card-back-group" id="opponent-cards"></div>
+                </div>
+
+                <div class="hand player-hand" id="player-hand">
+                    <p>Senin Elin</p>
+                    <div class="card-group" id="your-cards"></div>
+                </div>
+            </div>
+
+        </div>
+        
+        <a href="home.html" style="margin-top: 20px; display: inline-block;">← Ana Menüye Dön</a>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+    <script src="scripts/uno.js"></script>
+    <script>
+        const SUPABASE_URL = "https://bvlyzxljieftbkzkdwzv.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2bHl6eGxqaWVmdGJremtkd3p2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4ODQxNTgsImV4cCI6MjA2NjQ2MDE1OH0.mJEavNb2WC_0pBpg8KJq0ABc2hquYTewoge38U5P7dw";
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        async function checkSession() {
+            const { data: { user }, error } = await supabase.auth.getUser();
+            if (error || !user) {
+                alert("Oturum süresi dolmuş veya giriş yapılmamış. Lütfen tekrar giriş yapın.");
+                window.location.href = "index.html";
+            }
+        }
+        window.onload = checkSession;
+    </script>
 </body>
 </html>
