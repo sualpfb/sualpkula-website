@@ -274,7 +274,7 @@
         const SUPABASE_URL = "https://bvlyzxljieftbkzkdwzv.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2bHl6eGxqaWVmdGJremtkd3p2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4ODQxNTgsImV4cCI6MjA2NjQ2MDE1OH0.mJEavNb2WC_0pBpg8KJq0ABc2hquYTewoge38U5P7dw";
 
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // Global Variables
         let currentUserEmail = null;
@@ -463,7 +463,7 @@
                 console.log('Current user ID:', currentUserId);
 
                 // İlk önce basit bir insert deneyelim
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('games')
                     .insert(testGame)
                     .select()
@@ -519,7 +519,7 @@
                     state: { status: 'playing' }
                 };
 
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('games')
                     .update(gameData)
                     .eq('id', gameId)
@@ -562,7 +562,7 @@
             try {
                 showMessage("Oyuna katılınıyor...", 'info');
 
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('games')
                     .select('*')
                     .eq('id', gameId)
@@ -619,7 +619,7 @@
 
                 console.log('Updating game with:', updateData);
                 
-                const { error: updateError, data: updatedData } = await supabase
+                const { error: updateError, data: updatedData } = await supabaseClient
                     .from('games')
                     .update(updateData)
                     .eq('id', gameId)
@@ -655,7 +655,7 @@
 
             console.log('Setting up real-time subscription for game:', gameId);
             
-            gameSubscription = supabase
+            gameSubscription = supabaseClient
                 .channel(`game:${gameId}`)
                 .on('postgres_changes', { 
                     event: 'UPDATE', 
@@ -679,7 +679,7 @@
                 joinGameBtn.disabled = true;
 
                 // İlk önce Supabase auth kontrol et
-                const { data: { user }, error: authError } = await supabase.auth.getUser();
+                const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
                 
                 if (authError) {
                     console.error('Auth error:', authError);
@@ -691,7 +691,7 @@
                 }
 
                 // Sonra profiles tablosundan kullanıcı bilgilerini al
-                const { data: profile, error: profileError } = await supabase
+                const { data: profile, error: profileError } = await supabaseClient
                     .from('profiles')
                     .select('*')
                     .eq('id', user.id)
