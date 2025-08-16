@@ -1,6 +1,6 @@
 // UNO.js
-const SUPABASE_URL = "https://bvlyzxljieftbkzkdwzv.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2bHl6eGxqaWVmdGJremtkd3p2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4ODQxNTgsImV4cCI6MjA2NjQ2MDE1OH0.mJEavNb2WC_0pBpg8KJq0ABc2hquYTewoge38U5P7dw";
+const SUPABASE_URL = "https://sualpkula.com"; // supabase de eklenebilir kontrol ett
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2bHl6eGxqaWVmdGJremtkd3p2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4ODQxNTgsImV4cCI6MjA2NjQ2MDE1OH0.mJEavNb2WC_0pBpg8KJq0ABc2hquYTewoge38U5P7dw"; 
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentUserEmail = null;
@@ -140,11 +140,11 @@ async function createGame() {
     const firstCard = deck.draw();
     
     const newGame = {
-        players: [currentUserId], // Hata buradan kaynaklanıyordu, currentUserEmail yerine currentUserId kullanıldı
+        players: [currentUserId],
         player_count: 1,
         deck: deck.cards,
         discard_pile: [firstCard],
-        hands: { [currentUserId]: yourHand }, // Burası da güncellendi
+        hands: { [currentUserId]: yourHand },
         current_player_index: 0
     };
 
