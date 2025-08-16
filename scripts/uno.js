@@ -3,12 +3,10 @@ const SUPABASE_URL = "https://bvlyzxljieftbkzkdwzv.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2bHl6eGxqaWVmdGJremtkd3p2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4ODQxNTgsImV4cCI6MjA2NjQ2MDE1OH0.mJEavNb2WC_0pBpg8KJq0ABc2hquYTewoge38U5P7dw";
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// Kullanıcı bilgilerini ve oyun durumunu saklayacak global değişkenler
 let currentUserEmail = null;
 let currentUserId = null;
 let currentGameId = null;
 
-// Kart sınıfları
 const colors = ["red", "green", "blue", "yellow"];
 const values = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "skip", "reverse", "draw2"];
 const wildCards = ["wild", "wildDraw4"];
@@ -59,7 +57,6 @@ class Deck {
     }
 }
 
-// Global oyun durumu
 const gameState = {
     deck: [],
     players: [],
@@ -68,7 +65,6 @@ const gameState = {
     currentPlayerIndex: 0
 };
 
-// HTML elementleri
 const lobbySection = document.getElementById('lobby-section');
 const gameArea = document.querySelector('.game-area');
 const createGameBtn = document.getElementById('create-game-btn');
@@ -76,7 +72,6 @@ const joinGameBtn = document.getElementById('join-game-btn');
 const gameIdInput = document.getElementById('game-id-input');
 const statusMessage = document.getElementById('status-message');
 
-// Kartı ekrana render eden fonksiyon
 function renderCards() {
     const yourCardsContainer = document.getElementById("your-cards");
     const opponentCardsContainer = document.getElementById("opponent-cards");
@@ -87,8 +82,8 @@ function renderCards() {
     discardPileContainer.innerHTML = '';
     
     // Kendi elindeki kartları render et
-    if (gameState.hands[currentUserEmail]) {
-        gameState.hands[currentUserEmail].forEach(card => {
+    if (gameState.hands[currentUserId]) {
+        gameState.hands[currentUserId].forEach(card => {
             const cardEl = document.createElement("div");
             cardEl.className = `card ${card.color}`;
             cardEl.dataset.color = card.color;
@@ -99,8 +94,8 @@ function renderCards() {
     }
 
     // Diğer oyuncuların kartlarını render et
-    gameState.players.filter(p => p !== currentUserEmail).forEach(opponentEmail => {
-        const numCards = gameState.hands[opponentEmail] ? gameState.hands[opponentEmail].length : 0;
+    gameState.players.filter(p => p !== currentUserId).forEach(opponentId => {
+        const numCards = gameState.hands[opponentId] ? gameState.hands[opponentId].length : 0;
         opponentCardsContainer.innerHTML = '';
         for (let i = 0; i < numCards; i++) {
             const cardEl = document.createElement("div");
@@ -109,7 +104,6 @@ function renderCards() {
         }
     });
 
-    // Atılan kart yığınını render et
     if (gameState.discardPile.length > 0) {
         const topCard = gameState.discardPile[gameState.discardPile.length - 1];
         const cardEl = document.createElement("div");
@@ -121,7 +115,6 @@ function renderCards() {
     }
 }
 
-// Oyunu veritabanından yükleyip ekrana basan ana fonksiyon
 function renderGame(game) {
     Object.assign(gameState, game);
     lobbySection.style.display = 'none';
@@ -130,7 +123,6 @@ function renderGame(game) {
     statusMessage.textContent = `Oyun ID: ${game.id}`;
 }
 
-// Veritabanı dinleyicisini kurar
 function listenForGameUpdates(gameId) {
     supabase.channel(`game:${gameId}`)
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'games', filter: `id=eq.${gameId}` }, payload => {
@@ -140,9 +132,8 @@ function listenForGameUpdates(gameId) {
         .subscribe();
 }
 
-// Yeni oyun oluşturur
 async function createGame() {
-    if (!currentUserEmail) {
+    if (!currentUserId) {
         statusMessage.textContent = "Kullanıcı bilgileri yükleniyor, lütfen bekleyin.";
         return;
     }
@@ -151,11 +142,11 @@ async function createGame() {
     const firstCard = deck.draw();
     
     const newGame = {
-        players: [currentUserEmail],
+        players: [currentUserId],
         player_count: 1,
         deck: deck.cards,
         discard_pile: [firstCard],
-        hands: { [currentUserEmail]: yourHand },
+        hands: { [currentUserId]: yourHand },
         current_player_index: 0
     };
 
@@ -174,9 +165,8 @@ async function createGame() {
     listenForGameUpdates(gameId);
 }
 
-// Mevcut bir oyuna katılır
 async function joinGame() {
-    if (!currentUserEmail) {
+    if (!currentUserId) {
         statusMessage.textContent = "Kullanıcı bilgileri yükleniyor, lütfen bekleyin.";
         return;
     }
@@ -186,7 +176,7 @@ async function joinGame() {
         return;
     }
 
-    const { data, error } = await supabase.from('games').select('players, hands, deck').eq('id', gameId).single();
+    const { data, error } = await supabase.from('games').select('players, hands, deck, player_count').eq('id', gameId).single();
 
     if (error) {
         statusMessage.textContent = "Oyun bulunamadı veya katılım mümkün değil.";
@@ -194,20 +184,20 @@ async function joinGame() {
         return;
     }
 
-    if (data.players.length >= 4) {
+    if (data.player_count >= 4) {
         statusMessage.textContent = "Oyun zaten dolu.";
         return;
     }
     
-    if (data.players.includes(currentUserEmail)) {
+    if (data.players.includes(currentUserId)) {
         statusMessage.textContent = "Bu oyuna zaten katıldınız.";
         renderGame(data);
         listenForGameUpdates(gameId);
         return;
     }
     
-    const newPlayers = [...data.players, currentUserEmail];
-    const newHands = { ...data.hands, [currentUserEmail]: data.deck.splice(0, 7) };
+    const newPlayers = [...data.players, currentUserId];
+    const newHands = { ...data.hands, [currentUserId]: data.deck.splice(0, 7) };
     
     const { error: updateError, data: updatedData } = await supabase.from('games').update({
         players: newPlayers,
@@ -228,7 +218,6 @@ async function joinGame() {
     listenForGameUpdates(gameId);
 }
 
-// Sayfa yüklendiğinde kullanıcıyı al ve butonları etkinleştir
 window.addEventListener('DOMContentLoaded', async () => {
     statusMessage.textContent = "Oturum kontrol ediliyor...";
     createGameBtn.disabled = true;
@@ -242,12 +231,12 @@ window.addEventListener('DOMContentLoaded', async () => {
     }
 
     currentUserEmail = user.email;
+    currentUserId = user.id;
     statusMessage.textContent = "Hazır.";
     createGameBtn.disabled = false;
     joinGameBtn.disabled = false;
-    console.log("Kullanıcı doğrulandı:", currentUserEmail);
+    console.log("Kullanıcı doğrulandı:", currentUserEmail, currentUserId);
 });
 
-// Event dinleyicileri
 createGameBtn.addEventListener('click', createGame);
 joinGameBtn.addEventListener('click', joinGame);
