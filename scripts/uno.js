@@ -81,7 +81,6 @@ function renderCards() {
     opponentCardsContainer.innerHTML = '';
     discardPileContainer.innerHTML = '';
     
-    // Kendi elindeki kartları render et
     if (gameState.hands[currentUserId]) {
         gameState.hands[currentUserId].forEach(card => {
             const cardEl = document.createElement("div");
@@ -93,7 +92,6 @@ function renderCards() {
         });
     }
 
-    // Diğer oyuncuların kartlarını render et
     gameState.players.filter(p => p !== currentUserId).forEach(opponentId => {
         const numCards = gameState.hands[opponentId] ? gameState.hands[opponentId].length : 0;
         opponentCardsContainer.innerHTML = '';
@@ -142,11 +140,11 @@ async function createGame() {
     const firstCard = deck.draw();
     
     const newGame = {
-        players: [currentUserId],
+        players: [currentUserId], // Hata buradan kaynaklanıyordu, currentUserEmail yerine currentUserId kullanıldı
         player_count: 1,
         deck: deck.cards,
         discard_pile: [firstCard],
-        hands: { [currentUserId]: yourHand },
+        hands: { [currentUserId]: yourHand }, // Burası da güncellendi
         current_player_index: 0
     };
 
