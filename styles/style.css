@@ -754,3 +754,104 @@ button {
   background-color: rgba(0,0,0,0.1);
   border-radius: 50%;
 }
+
+/* --- UNO Oyunu Stilleri --- */
+
+.game-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+}
+
+.game-board {
+    display: flex;
+    justify-content: center;
+    gap: 50px;
+    margin-bottom: 20px;
+}
+
+.card-placeholder {
+    width: 80px;
+    height: 120px;
+    border: 2px dashed #999;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: #666;
+    background-color: #eee;
+}
+
+.deck-container {
+    position: relative;
+}
+
+.discard-pile {
+    border-color: #667eea;
+}
+
+.player-hands {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.hand {
+    background-color: #f9f9f9;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    width: 100%;
+    text-align: center;
+}
+
+.hand p {
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+/* Kartların kendisi için genel stil */
+.card {
+    width: 60px;
+    height: 90px;
+    border-radius: 8px;
+    border: 1px solid #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: white;
+    font-size: 1.5em;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.card-group {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+/* Kart renkleri */
+.card.red { background-color: #e74c3c; }
+.card.blue { background-color: #3498db; }
+.card.green { background-color: #2ecc71; }
+.card.yellow { background-color: #f1c40f; }
+.card.black { background-color: #34495e; }
+
+/* Kartın arka yüzü (rakip için) */
+.card-back {
+    background-color: #c0392b;
+    border: 1px solid #a03025;
+}
