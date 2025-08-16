@@ -440,44 +440,105 @@
                 return;
             }
 
+            // Button'u disable et
+            createGameBtn.disabled = true;
+            const originalText = createGameBtn.textContent;
+            createGameBtn.textContent = 'Oluşturuluyor...';
+
             try {
                 showMessage("Oyun oluşturuluyor...", 'info');
                 
-                const deck = new Deck();
-                const yourHand = deck.deal(7);
-                const firstCard = deck.draw();
-                
-                const newGame = {
+                // Test için basit veri yapısı
+                const testGame = {
                     players: [currentUserId],
-                    player_count: 2, // 2 oyunculu oyun
-                    deck: deck.cards,
-                    discard_pile: [firstCard],
-                    hands: { [currentUserId]: yourHand },
-                    current_player_index: 0
+                    player_count: 1,
+                    current_player_index: 0,
+                    deck: [],
+                    discard_pile: [],
+                    hands: {},
+                    state: { status: 'waiting' }
                 };
 
-                console.log('Creating game with data:', newGame);
+                console.log('Creating test game with data:', testGame);
+                console.log('Current user ID:', currentUserId);
 
+                // İlk önce basit bir insert deneyelim
                 const { data, error } = await supabase
                     .from('games')
-                    .insert(newGame)
+                    .insert(testGame)
                     .select()
                     .single();
 
+                console.log('Insert response:', { data, error });
+
                 if (error) {
-                    console.error('Game creation error:', error);
+                    console.error('Game creation error details:', {
+                        message: error.message,
+                        details: error.details,
+                        hint: error.hint,
+                        code: error.code
+                    });
                     showMessage("Oyun oluşturma hatası: " + error.message, 'error');
+                    return;
+                }
+
+                if (!data) {
+                    console.error('No data returned from insert');
+                    showMessage("Veri döndürülmedi, RLS politikalarını kontrol edin", 'error');
                     return;
                 }
 
                 console.log('Game created successfully:', data);
                 currentGameId = data.id;
-                renderGame(data);
-                listenForGameUpdates(data.id);
+                showMessage(`Oyun oluşturuldu! ID: ${data.id}`, 'success');
+                
+                // Şimdi gerçek oyun verilerini ekleyelim
+                await initializeGameData(data.id);
                 
             } catch (error) {
                 console.error('Unexpected error:', error);
                 showMessage("Beklenmeyen hata: " + error.message, 'error');
+            } finally {
+                // Button'u tekrar aktif et
+                createGameBtn.disabled = false;
+                createGameBtn.textContent = originalText;
+            }
+        }
+
+        async function initializeGameData(gameId) {
+            try {
+                const deck = new Deck();
+                const yourHand = deck.deal(7);
+                const firstCard = deck.draw();
+                
+                const gameData = {
+                    deck: deck.cards,
+                    discard_pile: [firstCard],
+                    hands: { [currentUserId]: yourHand },
+                    player_count: 2,
+                    state: { status: 'playing' }
+                };
+
+                const { data, error } = await supabase
+                    .from('games')
+                    .update(gameData)
+                    .eq('id', gameId)
+                    .select()
+                    .single();
+
+                if (error) {
+                    console.error('Game initialization error:', error);
+                    showMessage("Oyun başlatma hatası: " + error.message, 'error');
+                    return;
+                }
+
+                console.log('Game initialized successfully:', data);
+                renderGame(data);
+                listenForGameUpdates(gameId);
+                
+            } catch (error) {
+                console.error('Game initialization error:', error);
+                showMessage("Oyun başlatma hatası: " + error.message, 'error');
             }
         }
 
@@ -493,6 +554,11 @@
                 return;
             }
 
+            // Button'u disable et
+            joinGameBtn.disabled = true;
+            const originalText = joinGameBtn.textContent;
+            joinGameBtn.textContent = 'Katılınıyor...';
+
             try {
                 showMessage("Oyuna katılınıyor...", 'info');
 
@@ -502,20 +568,27 @@
                     .eq('id', gameId)
                     .single();
 
+                console.log('Join game query result:', { data, error });
+
                 if (error) {
                     console.error('Game fetch error:', error);
-                    showMessage("Oyun bulunamadı veya erişim hatası.", 'error');
+                    showMessage("Oyun bulunamadı: " + error.message, 'error');
+                    return;
+                }
+
+                if (!data) {
+                    showMessage("Oyun bulunamadı.", 'error');
                     return;
                 }
 
                 console.log('Found game:', data);
 
-                if (data.player_count >= 4) {
+                if (data.players && data.players.length >= 4) {
                     showMessage("Oyun zaten dolu.", 'error');
                     return;
                 }
                 
-                if (data.players.includes(currentUserId)) {
+                if (data.players && data.players.includes(currentUserId)) {
                     showMessage("Bu oyuna zaten katıldınız.", 'success');
                     currentGameId = gameId;
                     renderGame(data);
@@ -524,26 +597,38 @@
                 }
                 
                 // Add player to game
-                const newPlayers = [...data.players, currentUserId];
-                const remainingDeck = [...data.deck];
-                const newHand = remainingDeck.splice(0, 7);
-                const newHands = { ...data.hands, [currentUserId]: newHand };
+                const newPlayers = data.players ? [...data.players, currentUserId] : [currentUserId];
+                const existingHands = data.hands || {};
+                
+                // Eğer deck boşsa yeni deck oluştur
+                let gameDeck = data.deck || [];
+                if (!gameDeck || gameDeck.length < 7) {
+                    const newDeck = new Deck();
+                    gameDeck = newDeck.cards;
+                }
+                
+                const newHand = gameDeck.splice(0, 7);
+                const newHands = { ...existingHands, [currentUserId]: newHand };
+                
+                const updateData = {
+                    players: newPlayers,
+                    hands: newHands,
+                    deck: gameDeck,
+                    player_count: newPlayers.length
+                };
+
+                console.log('Updating game with:', updateData);
                 
                 const { error: updateError, data: updatedData } = await supabase
                     .from('games')
-                    .update({
-                        players: newPlayers,
-                        hands: newHands,
-                        deck: remainingDeck,
-                        player_count: newPlayers.length
-                    })
+                    .update(updateData)
                     .eq('id', gameId)
                     .select()
                     .single();
                 
                 if (updateError) {
                     console.error('Game update error:', updateError);
-                    showMessage("Oyuna katılırken hata oluştu: " + updateError.message, 'error');
+                    showMessage("Oyuna katılırken hata: " + updateError.message, 'error');
                     return;
                 }
 
@@ -553,8 +638,12 @@
                 listenForGameUpdates(gameId);
                 
             } catch (error) {
-                console.error('Unexpected error:', error);
+                console.error('Unexpected join error:', error);
                 showMessage("Beklenmeyen hata: " + error.message, 'error');
+            } finally {
+                // Button'u tekrar aktif et
+                joinGameBtn.disabled = false;
+                joinGameBtn.textContent = originalText;
             }
         }
 
