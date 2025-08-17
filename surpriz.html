@@ -845,3 +845,387 @@
                     } else {
                         cardEl.style.opacity = '0.7';
                         cardEl.style.cursor = 'not-allowed';
+                        cardEl.title = 'Bu kartı şu anda oynayamazsın';
+                    }
+                    
+                    yourCardsContainer.appendChild(cardEl);
+                });
+            }
+
+            // Render opponents
+            gameState.players.filter(p => p !== currentUserId).forEach((opponentId, index) => {
+                const numCards = gameState.hands && gameState.hands[opponentId] ? gameState.hands[opponentId].length : 0;
+                
+                const opponentDiv = document.createElement('div');
+                opponentDiv.className = 'opponent-container';
+                
+                const isCurrentTurn = gameState.players[gameState.currentPlayerIndex] === opponentId;
+                const turnIndicator = isCurrentTurn ? '<span class="current-turn">🔥 Sırası</span>' : '';
+                
+                opponentDiv.innerHTML = `
+                    <div class="opponent-info">
+                        <strong>🎮 Oyuncu ${index + 2}</strong>
+                        <div>
+                            <span>(${numCards} kart)</span>
+                            ${turnIndicator}
+                        </div>
+                    </div>
+                    <div class="opponent-cards"></div>
+                `;
+                
+                const opponentCardsContainer = opponentDiv.querySelector('.opponent-cards');
+                for (let i = 0; i < numCards; i++) {
+                    const cardEl = document.createElement("div");
+                    cardEl.className = 'card card-back';
+                    cardEl.textContent = 'UNO';
+                    cardEl.style.fontSize = '0.8em';
+                    opponentCardsContainer.appendChild(cardEl);
+                }
+                
+                opponentsGrid.appendChild(opponentDiv);
+            });
+
+            // Render discard pile
+            const discardPileContainer = document.getElementById("discard-pile");
+            discardPileContainer.innerHTML = '';
+            
+            if (gameState.discardPile && gameState.discardPile.length > 0) {
+                const topCard = gameState.discardPile[gameState.discardPile.length - 1];
+                const cardEl = document.createElement("div");
+                cardEl.className = `card ${topCard.color}`;
+                
+                let displayText = topCard.value;
+                if (topCard.value === 'wild') displayText = 'W';
+                else if (topCard.value === 'wildDraw4') displayText = '+4';
+                else if (topCard.value === 'skip') displayText = '⊘';
+                else if (topCard.value === 'reverse') displayText = '⇄';
+                else if (topCard.value === 'draw2') displayText = '+2';
+                
+                cardEl.textContent = displayText;
+                discardPileContainer.appendChild(cardEl);
+            } else {
+                discardPileContainer.innerHTML = '🗂️<br>Oynanmış<br>Kartlar';
+            }
+
+            // Update turn indicator
+            updateTurnIndicator();
+        }
+
+        function updateTurnIndicator() {
+            const turnIndicator = document.getElementById('turn-indicator');
+            
+            if (gameState.status !== 'playing') {
+                turnIndicator.textContent = 'Oyun başlıyor...';
+                turnIndicator.className = 'turn-indicator waiting';
+                return;
+            }
+
+            if (isMyTurn()) {
+                turnIndicator.textContent = '🎯 Senin Sıran!';
+                turnIndicator.className = 'turn-indicator my-turn';
+            } else {
+                const currentPlayerIndex = gameState.currentPlayerIndex;
+                const playerCount = gameState.players.filter(p => p !== currentUserId).length;
+                turnIndicator.textContent = `🎮 Oyuncu ${getCurrentPlayerNumber()}'nın sırası`;
+                turnIndicator.className = 'turn-indicator opponent-turn';
+            }
+        }
+
+        function getCurrentPlayerNumber() {
+            const currentPlayerId = gameState.players[gameState.currentPlayerIndex];
+            if (currentPlayerId === currentUserId) return 'Senin';
+            
+            const otherPlayers = gameState.players.filter(p => p !== currentUserId);
+            const playerIndex = otherPlayers.indexOf(currentPlayerId);
+            return playerIndex + 2; // Player 2, 3, 4
+        }
+
+        function renderGame(game) {
+            debugLog('Rendering game:', game);
+            
+            // Update game state
+            gameState.id = game.id;
+            gameState.deck = game.deck || [];
+            gameState.players = game.players || [];
+            gameState.hands = game.hands || {};
+            gameState.discardPile = game.discard_pile || [];
+            gameState.currentPlayerIndex = game.current_player_index || 0;
+            gameState.status = game.status || 'waiting';
+            
+            // Show appropriate sections
+            if (game.status === 'waiting') {
+                // Show waiting lobby
+                playersWaiting.style.display = 'block';
+                gameBoard.style.display = 'none';
+                playerHands.style.display = 'none';
+                gameInfo.style.display = 'none';
+                renderPlayersList();
+            } else if (game.status === 'playing') {
+                // Show game
+                playersWaiting.style.display = 'none';
+                gameBoard.style.display = 'flex';
+                playerHands.style.display = 'block';
+                gameInfo.style.display = 'flex';
+                renderCards();
+            }
+            
+            // Show game area and header
+            lobbySection.style.display = 'none';
+            gameArea.style.display = 'block';
+            gameHeader.style.display = 'flex';
+            
+            // Update game ID display
+            document.getElementById('current-game-id').textContent = game.id;
+            
+            showMessage(`Oyun ID: ${game.id} | Oyuncular: ${game.players.length}/4`, 'success');
+        }
+
+        // Game Logic Functions
+        function canPlayCard(card) {
+            if (!gameState.discardPile || gameState.discardPile.length === 0) return true;
+            
+            const topCard = gameState.discardPile[gameState.discardPile.length - 1];
+            
+            // Wild cards can always be played
+            if (card.color === 'black') return true;
+            
+            // Same color or same value
+            return card.color === topCard.color || card.value === topCard.value;
+        }
+
+        function isMyTurn() {
+            if (!gameState.players || gameState.currentPlayerIndex === undefined) return false;
+            return gameState.players[gameState.currentPlayerIndex] === currentUserId;
+        }
+
+        async function playCard(cardIndex) {
+            if (!isMyTurn()) {
+                showMessage("Şu anda senin sıran değil!", 'error');
+                return;
+            }
+
+            if (gameState.status !== 'playing') {
+                showMessage("Oyun henüz başlamadı!", 'error');
+                return;
+            }
+
+            const card = gameState.hands[currentUserId][cardIndex];
+            if (!canPlayCard(card)) {
+                showMessage("Bu kartı oynayamazsın!", 'error');
+                return;
+            }
+
+            try {
+                // Remove card from hand and add to discard pile
+                const newHand = [...gameState.hands[currentUserId]];
+                const playedCard = newHand.splice(cardIndex, 1)[0];
+                
+                const newDiscardPile = [...gameState.discardPile, playedCard];
+                const newHands = { 
+                    ...gameState.hands, 
+                    [currentUserId]: newHand 
+                };
+
+                // Calculate next player
+                let nextPlayerIndex = (gameState.currentPlayerIndex + 1) % gameState.players.length;
+                
+                // Handle special cards
+                let skipNext = false;
+                if (playedCard.value === 'skip') {
+                    skipNext = true;
+                } else if (playedCard.value === 'reverse') {
+                    // For 2 players, reverse acts like skip
+                    if (gameState.players.length === 2) {
+                        skipNext = true;
+                    } else {
+                        // Reverse the order - this is simplified, full implementation would track direction
+                        skipNext = true;
+                    }
+                } else if (playedCard.value === 'draw2') {
+                    // Next player draws 2 cards and loses turn
+                    const nextPlayerId = gameState.players[nextPlayerIndex];
+                    const nextPlayerHand = [...gameState.hands[nextPlayerId]];
+                    
+                    // Draw 2 cards for next player
+                    const newDeck = [...gameState.deck];
+                    for (let i = 0; i < 2 && newDeck.length > 0; i++) {
+                        const drawnCard = newDeck.pop();
+                        if (drawnCard) nextPlayerHand.push(drawnCard);
+                    }
+                    
+                    newHands[nextPlayerId] = nextPlayerHand;
+                    gameState.deck = newDeck;
+                    skipNext = true;
+                }
+
+                if (skipNext) {
+                    nextPlayerIndex = (nextPlayerIndex + 1) % gameState.players.length;
+                }
+
+                const updateData = {
+                    hands: newHands,
+                    discard_pile: newDiscardPile,
+                    current_player_index: nextPlayerIndex,
+                    deck: gameState.deck,
+                    updated_at: new Date().toISOString()
+                };
+
+                const { error } = await supabaseClient
+                    .from('games')
+                    .update(updateData)
+                    .eq('id', currentGameId);
+
+                if (error) {
+                    console.error('Play card error:', error);
+                    showMessage("Kart oynama hatası: " + error.message, 'error');
+                    return;
+                }
+
+                // Check for win
+                if (newHand.length === 0) {
+                    showMessage("🎉 Tebrikler! Kazandınız!", 'success');
+                    // Update game status to finished
+                    await supabaseClient
+                        .from('games')
+                        .update({ status: 'finished', winner: currentUserId, updated_at: new Date().toISOString() })
+                        .eq('id', currentGameId);
+                } else if (newHand.length === 1) {
+                    showMessage("🔥 UNO! Son kartın!", 'info');
+                }
+
+            } catch (error) {
+                console.error('Play card error:', error);
+                showMessage("Kart oynama hatası: " + error.message, 'error');
+            }
+        }
+
+        async function drawCard() {
+            if (!isMyTurn()) {
+                showMessage("Şu anda senin sıran değil!", 'error');
+                return;
+            }
+
+            if (!gameState.deck || gameState.deck.length === 0) {
+                showMessage("Deste boş!", 'error');
+                return;
+            }
+
+            try {
+                // Draw card from deck
+                const newDeck = [...gameState.deck];
+                const drawnCard = newDeck.pop();
+                
+                if (!drawnCard) {
+                    showMessage("Deste boş!", 'error');
+                    return;
+                }
+                
+                const newHand = [...gameState.hands[currentUserId], drawnCard];
+                const newHands = { 
+                    ...gameState.hands, 
+                    [currentUserId]: newHand 
+                };
+
+                // Move to next player
+                const nextPlayerIndex = (gameState.currentPlayerIndex + 1) % gameState.players.length;
+
+                const updateData = {
+                    hands: newHands,
+                    deck: newDeck,
+                    current_player_index: nextPlayerIndex,
+                    updated_at: new Date().toISOString()
+                };
+
+                const { error } = await supabaseClient
+                    .from('games')
+                    .update(updateData)
+                    .eq('id', currentGameId);
+
+                if (error) {
+                    console.error('Draw card error:', error);
+                    showMessage("Kart çekme hatası: " + error.message, 'error');
+                    return;
+                }
+
+                showMessage(`Kart çektin: ${getCardDisplayText(drawnCard)}`, 'success');
+
+            } catch (error) {
+                console.error('Draw card error:', error);
+                showMessage("Kart çekme hatası: " + error.message, 'error');
+            }
+        }
+
+        function getCardDisplayText(card) {
+            if (card.value === 'wild') return 'Wild';
+            else if (card.value === 'wildDraw4') return 'Wild +4';
+            else if (card.value === 'skip') return 'Skip';
+            else if (card.value === 'reverse') return 'Reverse';
+            else if (card.value === 'draw2') return '+2';
+            else return card.value;
+        }
+
+        async function startGame() {
+            if (gameState.players.length < 2) {
+                showMessage("En az 2 oyuncu gerekli!", 'error');
+                return;
+            }
+
+            startGameBtn.disabled = true;
+            const originalText = startGameBtn.textContent;
+            startGameBtn.textContent = '⏳ Başlatılıyor...';
+
+            try {
+                const deck = new Deck();
+                const hands = {};
+                
+                // Deal 7 cards to each player
+                gameState.players.forEach(playerId => {
+                    hands[playerId] = deck.deal(7);
+                });
+                
+                // First card for discard pile (make sure it's not a wild card)
+                let firstCard;
+                do {
+                    firstCard = deck.draw();
+                } while (firstCard && firstCard.color === 'black');
+                
+                if (!firstCard) {
+                    showMessage("Deste oluşturulurken hata!", 'error');
+                    return;
+                }
+                
+                const gameData = {
+                    deck: deck.cards,
+                    discard_pile: [firstCard],
+                    hands: hands,
+                    status: 'playing',
+                    updated_at: new Date().toISOString()
+                };
+
+                const { error, data } = await supabaseClient
+                    .from('games')
+                    .update(gameData)
+                    .eq('id', currentGameId)
+                    .select();
+
+                if (error) {
+                    console.error('Game start error:', error);
+                    showMessage("Oyun başlatma hatası: " + error.message, 'error');
+                    return;
+                }
+
+                if (data && data.length > 0) {
+                    debugLog('Game started successfully:', data[0]);
+                    showMessage("🎯 Oyun başladı! İyi şanslar!", 'success');
+                } else {
+                    showMessage("Oyun başlatılırken bir sorun oluştu.", 'error');
+                }
+                
+            } catch (error) {
+                console.error('Game start error:', error);
+                showMessage("Oyun başlatma hatası: " + error.message, 'error');
+            } finally {
+                startGameBtn.disabled = false;
+                startGameBtn.textContent = originalText;
+            }
+        }
