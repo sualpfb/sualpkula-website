@@ -1093,37 +1093,68 @@
             try {
                 showMessage("Oyun oluşturuluyor...", 'info');
                 
-                const gameId = generateGameId();
-                
-                const newGame = {
-                    id: gameId,
-                    players: [currentUserId],
-                    player_count: 1,
-                    current_player_index: 0,
-                    deck: [],
-                    discard_pile: [],
-                    hands: {},
-                    status: 'waiting'
-                };
+                let gameId;
+                let attempts = 0;
+                let gameCreated = false;
 
-                console.log('Creating game with data:', newGame);
+                // Try to generate a unique game ID (max 10 attempts)
+                while (!gameCreated && attempts < 10) {
+                    gameId = generateGameId();
+                    
+                    // Check if this ID already exists
+                    const { data: existingGames } = await supabaseClient
+                        .from('games')
+                        .select('id')
+                        .eq('id', gameId);
 
-                const { data, error } = await supabaseClient
-                    .from('games')
-                    .insert(newGame)
-                    .select()
-                    .single();
+                    if (!existingGames || existingGames.length === 0) {
+                        // ID is unique, proceed with creation
+                        const newGame = {
+                            id: gameId,
+                            players: [currentUserId],
+                            player_count: 1,
+                            current_player_index: 0,
+                            deck: [],
+                            discard_pile: [],
+                            hands: {},
+                            status: 'waiting'
+                        };
 
-                if (error) {
-                    console.error('Game creation error:', error);
-                    showMessage("Oyun oluşturma hatası: " + error.message, 'error');
-                    return;
+                        console.log('Creating game with data:', newGame);
+
+                        const { data, error } = await supabaseClient
+                            .from('games')
+                            .insert(newGame)
+                            .select();
+
+                        if (error) {
+                            console.error('Game creation error:', error);
+                            if (error.code === '23505') { // Unique constraint violation
+                                attempts++;
+                                continue; // Try with a new ID
+                            } else {
+                                showMessage("Oyun oluşturma hatası: " + error.message, 'error');
+                                return;
+                            }
+                        }
+
+                        if (data && data.length > 0) {
+                            console.log('Game created successfully:', data[0]);
+                            currentGameId = data[0].id;
+                            renderGame(data[0]);
+                            listenForGameUpdates(data[0].id);
+                            gameCreated = true;
+                        }
+                    } else {
+                        attempts++;
+                        console.log(`Game ID ${gameId} already exists, trying again... (${attempts}/10)`);
+                    }
                 }
 
-                console.log('Game created successfully:', data);
-                currentGameId = data.id;
-                renderGame(data);
-                listenForGameUpdates(data.id);
+                if (!gameCreated) {
+                    showMessage("Benzersiz oyun ID oluşturulamadı. Lütfen tekrar deneyin.", 'error');
+                    return;
+                }
                 
             } catch (error) {
                 console.error('Unexpected error:', error);
@@ -1153,17 +1184,29 @@
             try {
                 showMessage("Oyuna katılınıyor...", 'info');
 
-                const { data, error } = await supabaseClient
+                // First, get the game without .single() to avoid multiple rows error
+                const { data: games, error } = await supabaseClient
                     .from('games')
                     .select('*')
                     .eq('id', gameId)
-                    .single();
+                    .order('created_at', { ascending: false }); // Get the most recent one if duplicates exist
 
-                if (error || !data) {
+                console.log('Games found:', games, 'Error:', error);
+
+                if (error) {
                     console.error('Game fetch error:', error);
+                    showMessage("Oyun arama hatası: " + error.message, 'error');
+                    return;
+                }
+
+                if (!games || games.length === 0) {
                     showMessage("Oyun bulunamadı. ID'yi kontrol edin.", 'error');
                     return;
                 }
+
+                // Take the first (most recent) game if multiple exist
+                const data = games[0];
+                console.log('Using game:', data);
 
                 if (data.players && data.players.length >= 4) {
                     showMessage("Oyun zaten dolu (4/4 oyuncu).", 'error');
@@ -1184,19 +1227,21 @@
                 }
                 
                 // Add player to game
-                const newPlayers = [...data.players, currentUserId];
+                const newPlayers = [...(data.players || []), currentUserId];
                 
                 const updateData = {
                     players: newPlayers,
                     player_count: newPlayers.length
                 };
 
-                const { error: updateError, data: updatedData } = await supabaseClient
+                console.log('Updating game with:', updateData);
+
+                const { error: updateError, data: updatedGames } = await supabaseClient
                     .from('games')
                     .update(updateData)
                     .eq('id', gameId)
                     .select()
-                    .single();
+                    .order('created_at', { ascending: false });
                 
                 if (updateError) {
                     console.error('Game update error:', updateError);
@@ -1204,6 +1249,12 @@
                     return;
                 }
 
+                if (!updatedGames || updatedGames.length === 0) {
+                    showMessage("Oyun güncellenemedi.", 'error');
+                    return;
+                }
+
+                const updatedData = updatedGames[0];
                 console.log('Joined game successfully:', updatedData);
                 currentGameId = gameId;
                 renderGame(updatedData);
@@ -1255,10 +1306,12 @@
                     status: 'playing'
                 };
 
-                const { error } = await supabaseClient
+                // Remove .single() here too to avoid multiple rows error
+                const { error, data } = await supabaseClient
                     .from('games')
                     .update(gameData)
-                    .eq('id', currentGameId);
+                    .eq('id', currentGameId)
+                    .select();
 
                 if (error) {
                     console.error('Game start error:', error);
@@ -1266,7 +1319,12 @@
                     return;
                 }
 
-                showMessage("🎯 Oyun başladı! İyi şanslar!", 'success');
+                if (data && data.length > 0) {
+                    console.log('Game started successfully:', data[0]);
+                    showMessage("🎯 Oyun başladı! İyi şanslar!", 'success');
+                } else {
+                    showMessage("Oyun başlatılırken bir sorun oluştu.", 'error');
+                }
                 
             } catch (error) {
                 console.error('Game start error:', error);
