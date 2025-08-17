@@ -22,6 +22,7 @@
         .game-container {
             max-width: 1400px;
             margin: 0 auto;
+            position: relative;
         }
 
         /* Header */
@@ -236,6 +237,7 @@
             align-items: center;
             gap: 40px;
             margin: 30px 0;
+            flex-wrap: wrap;
         }
 
         .deck-container {
@@ -411,6 +413,7 @@
             border-radius: 15px;
             border-left: 5px solid #28a745;
             text-align: center;
+            position: relative;
         }
 
         .your-hand h3 {
@@ -456,6 +459,154 @@
             box-shadow: 0 5px 15px rgba(220, 53, 69, 0.4);
         }
 
+        /* UNO Call Button */
+        .uno-call-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: linear-gradient(45deg, #ffc107, #ff9800);
+            color: #333;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: none;
+        }
+
+        .uno-call-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 3px 10px rgba(255, 193, 7, 0.4);
+        }
+
+        /* Game End Modal */
+        .game-end-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            display: none;
+        }
+
+        .game-end-content {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .game-end-content h2 {
+            color: #28a745;
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+
+        .winner-name {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #007bff;
+            margin: 15px 0;
+        }
+
+        .score-display {
+            font-size: 1.2em;
+            margin: 15px 0;
+            color: #333;
+        }
+
+        .player-score {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .player-score.you {
+            font-weight: bold;
+            background: #f8f9fa;
+        }
+
+        /* Color Picker */
+        .color-picker-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1001;
+            display: none;
+        }
+
+        .color-picker {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            width: 300px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+
+        .color-picker h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .color-options {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .color-option {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .color-option:hover {
+            transform: scale(1.1);
+        }
+
+        .color-option.red {
+            background: #e74c3c;
+        }
+
+        .color-option.blue {
+            background: #3498db;
+        }
+
+        .color-option.green {
+            background: #2ecc71;
+        }
+
+        .color-option.yellow {
+            background: #f1c40f;
+        }
+
+        .color-picker button {
+            margin-top: 15px;
+            background: #6c757d;
+            color: white;
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .game-container {
@@ -485,30 +636,50 @@
             .your-cards {
                 justify-content: center;
             }
-        }
-        <style id="unoPickerStyles">
-.uno-color-picker-backdrop {
-  position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
-  background: rgba(0,0,0,.45); z-index: 9999;
-}
-.uno-color-picker {
-  background: #121212; color: #fff; padding: 16px; border-radius: 16px; width: min(92vw, 360px);
-  box-shadow: 0 10px 30px rgba(0,0,0,.45); text-align: center; font-family: inherit;
-}
-.uno-color-title { font-size: 18px; font-weight: 700; margin-bottom: 12px; }
-.uno-color-grid  { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 12px; }
-.uno-color-btn { width: 56px; height: 56px; border-radius: 12px; border: none; cursor: pointer; outline: none; }
-.uno-color-btn[data-color="red"]    { background: #d93025; }
-.uno-color-btn[data-color="yellow"] { background: #f2c10d; }
-.uno-color-btn[data-color="green"]  { background: #17a34a; }
-.uno-color-btn[data-color="blue"]   { background: #2563eb; }
-.uno-color-btn:focus { outline: 3px solid rgba(255,255,255,.45); }
-.uno-cancel-btn {
-  width: 100%; background: #2e2e2e; color: #fff; border: none; padding: 10px 12px; border-radius: 10px; cursor: pointer;
-}
-.uno-cancel-btn:focus { outline: 3px solid rgba(255,255,255,.45); }
-</style>
 
+            .card {
+                width: 60px;
+                height: 90px;
+                font-size: 1em;
+            }
+
+            .card-placeholder {
+                width: 60px;
+                height: 90px;
+                font-size: 12px;
+            }
+
+            .opponents-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .card {
+                width: 50px;
+                height: 75px;
+                font-size: 0.9em;
+            }
+
+            .card-placeholder {
+                width: 50px;
+                height: 75px;
+                font-size: 10px;
+            }
+
+            .game-info {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .lobby-section h2 {
+                font-size: 1.8em;
+            }
+
+            .your-hand h3 {
+                font-size: 1.2em;
+            }
+        }
     </style>
 </head>
 <body>
@@ -592,11 +763,37 @@
                 
                 <!-- Your Hand -->
                 <div class="your-hand">
+                    <button id="uno-call-btn" class="uno-call-btn">UNO!</button>
                     <h3>👤 Senin Kartların (<span id="your-card-count">0</span> kart)</h3>
                     <div id="your-cards" class="your-cards"></div>
                     <p class="help-text">💡 Yeşil parlayan kartlar oynanabilir kartlardır</p>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Game End Modal -->
+    <div class="game-end-modal" id="game-end-modal">
+        <div class="game-end-content">
+            <h2>🎉 Oyun Bitti!</h2>
+            <div id="winner-message" class="winner-name"></div>
+            <div class="score-display">Skorlar:</div>
+            <div id="scores-container"></div>
+            <button class="btn-primary" onclick="closeGameEndModal()">Tamam</button>
+        </div>
+    </div>
+
+    <!-- Color Picker Modal -->
+    <div class="color-picker-backdrop" id="color-picker">
+        <div class="color-picker">
+            <h3>Bir renk seçin</h3>
+            <div class="color-options">
+                <div class="color-option red" data-color="red"></div>
+                <div class="color-option blue" data-color="blue"></div>
+                <div class="color-option green" data-color="green"></div>
+                <div class="color-option yellow" data-color="yellow"></div>
+            </div>
+            <button class="btn-danger" onclick="cancelColorSelection()">İptal</button>
         </div>
     </div>
 
@@ -612,6 +809,7 @@
         let currentUserId = null;
         let currentGameId = null;
         let gameSubscription = null;
+        let colorSelectionResolve = null;
 
         // Game Constants
         const colors = ["red", "green", "blue", "yellow"];
@@ -679,7 +877,9 @@
             discardPile: [],
             currentPlayerIndex: 0,
             status: 'waiting', // waiting, playing, finished
-            maxPlayers: 4
+            maxPlayers: 4,
+            winner: null,
+            scores: {}
         };
 
         // DOM Elements
@@ -697,6 +897,9 @@
         const gameBoard = document.getElementById('game-board');
         const playerHands = document.getElementById('player-hands');
         const gameInfo = document.getElementById('game-info');
+        const unoCallBtn = document.getElementById('uno-call-btn');
+        const gameEndModal = document.getElementById('game-end-modal');
+        const colorPicker = document.getElementById('color-picker');
 
         // Utility Functions
         function showMessage(message, type = 'info') {
@@ -705,12 +908,67 @@
         }
 
         function goBack() {
-            // Ana sayfaya dönmek için - sizin ana sayfa dosyanızın adını yazın
             window.location.href = 'home.html';
         }
 
         function generateGameId() {
             return Math.random().toString(36).substr(2, 6).toUpperCase();
+        }
+
+        function showGameEndModal(winnerId, scores) {
+            const winnerMessage = document.getElementById('winner-message');
+            const scoresContainer = document.getElementById('scores-container');
+            
+            if (winnerId === currentUserId) {
+                winnerMessage.textContent = "🎉 Tebrikler, kazandınız! 🎉";
+            } else {
+                winnerMessage.textContent = "Oyuncu kazandı!";
+            }
+            
+            scoresContainer.innerHTML = '';
+            Object.entries(scores).forEach(([playerId, score]) => {
+                const scoreElement = document.createElement('div');
+                scoreElement.className = `player-score ${playerId === currentUserId ? 'you' : ''}`;
+                scoreElement.innerHTML = `
+                    <span>${playerId === currentUserId ? 'Sen' : 'Oyuncu'}</span>
+                    <span>${score} puan</span>
+                `;
+                scoresContainer.appendChild(scoreElement);
+            });
+            
+            gameEndModal.style.display = 'flex';
+        }
+
+        function closeGameEndModal() {
+            gameEndModal.style.display = 'none';
+            leaveGame();
+        }
+
+        async function selectColor() {
+            return new Promise((resolve) => {
+                colorSelectionResolve = resolve;
+                colorPicker.style.display = 'flex';
+                
+                // Add event listeners to color options
+                document.querySelectorAll('.color-option').forEach(option => {
+                    option.addEventListener('click', () => {
+                        const color = option.dataset.color;
+                        colorPicker.style.display = 'none';
+                        if (colorSelectionResolve) {
+                            colorSelectionResolve(color);
+                            colorSelectionResolve = null;
+                        }
+                    });
+                });
+            });
+        }
+
+        function cancelColorSelection() {
+            colorPicker.style.display = 'none';
+            if (colorSelectionResolve) {
+                colorSelectionResolve(null);
+                colorSelectionResolve = null;
+            }
         }
 
         // Render Functions
@@ -757,6 +1015,17 @@
             const yourCardCount = gameState.hands[currentUserId] ? gameState.hands[currentUserId].length : 0;
             document.getElementById('your-card-count').textContent = yourCardCount;
             document.getElementById('cards-remaining').textContent = `Deste: ${gameState.deck.length} kart`;
+            
+            // UNO butonunu kontrol et
+            if (yourCardCount === 1) {
+                unoCallBtn.style.display = 'block';
+                unoCallBtn.onclick = () => {
+                    showMessage("UNO! Son kartını oynuyorsun!", 'success');
+                    unoCallBtn.style.display = 'none';
+                };
+            } else {
+                unoCallBtn.style.display = 'none';
+            }
             
             // Render your cards
             if (gameState.hands && gameState.hands[currentUserId]) {
@@ -891,6 +1160,8 @@
             gameState.discardPile = game.discard_pile || [];
             gameState.currentPlayerIndex = game.current_player_index || 0;
             gameState.status = game.status || 'waiting';
+            gameState.winner = game.winner || null;
+            gameState.scores = game.scores || {};
             
             // Show appropriate sections
             if (game.status === 'waiting') {
@@ -907,6 +1178,9 @@
                 playerHands.style.display = 'block';
                 gameInfo.style.display = 'flex';
                 renderCards();
+            } else if (game.status === 'finished') {
+                // Show game end modal
+                showGameEndModal(game.winner, game.scores);
             }
             
             // Show game area and header
@@ -917,7 +1191,9 @@
             // Update game ID display
             document.getElementById('current-game-id').textContent = game.id;
             
-            showMessage(`Oyun ID: ${game.id} | Oyuncular: ${game.players.length}/4`, 'success');
+            if (game.status !== 'finished') {
+                showMessage(`Oyun ID: ${game.id} | Oyuncular: ${game.players.length}/4`, 'success');
+            }
         }
 
         // Game Logic Functions
@@ -960,6 +1236,15 @@
                 const newHand = [...gameState.hands[currentUserId]];
                 const playedCard = newHand.splice(cardIndex, 1)[0];
                 
+                // Wild kart ise renk seç
+                if (playedCard.color === 'black') {
+                    const selectedColor = await selectColor();
+                    if (!selectedColor) return; // Kullanıcı iptal etti
+                    
+                    playedCard.color = selectedColor;
+                    showMessage(`Renk seçildi: ${selectedColor}`, 'success');
+                }
+                
                 const newDiscardPile = [...gameState.discardPile, playedCard];
                 const newHands = { 
                     ...gameState.hands, 
@@ -996,6 +1281,21 @@
                     newHands[nextPlayerId] = nextPlayerHand;
                     gameState.deck = newDeck;
                     skipNext = true;
+                } else if (playedCard.value === 'wildDraw4') {
+                    // Next player draws 4 cards and loses turn
+                    const nextPlayerId = gameState.players[nextPlayerIndex];
+                    const nextPlayerHand = [...gameState.hands[nextPlayerId]];
+                    
+                    // Draw 4 cards for next player
+                    const newDeck = [...gameState.deck];
+                    for (let i = 0; i < 4 && newDeck.length > 0; i++) {
+                        const drawnCard = newDeck.pop();
+                        if (drawnCard) nextPlayerHand.push(drawnCard);
+                    }
+                    
+                    newHands[nextPlayerId] = nextPlayerHand;
+                    gameState.deck = newDeck;
+                    skipNext = true;
                 }
 
                 if (skipNext) {
@@ -1009,6 +1309,27 @@
                     deck: gameState.deck
                 };
 
+                // Check for win
+                if (newHand.length === 0) {
+                    // Calculate scores
+                    const scores = {};
+                    Object.entries(newHands).forEach(([playerId, cards]) => {
+                        scores[playerId] = cards.reduce((sum, card) => {
+                            if (card.value === 'wild' || card.value === 'wildDraw4') return sum + 50;
+                            if (isNaN(card.value)) return sum + 20; // Özel kartlar
+                            return sum + parseInt(card.value);
+                        }, 0);
+                    });
+                    
+                    updateData.status = 'finished';
+                    updateData.winner = currentUserId;
+                    updateData.scores = scores;
+                    
+                    showMessage("🎉 Tebrikler! Kazandınız!", 'success');
+                } else if (newHand.length === 1) {
+                    showMessage("🔥 UNO! Son kartın!", 'info');
+                }
+
                 const { error } = await supabaseClient
                     .from('games')
                     .update(updateData)
@@ -1018,18 +1339,6 @@
                     console.error('Play card error:', error);
                     showMessage("Kart oynama hatası: " + error.message, 'error');
                     return;
-                }
-
-                // Check for win
-                if (newHand.length === 0) {
-                    showMessage("🎉 Tebrikler! Kazandınız!", 'success');
-                    // Update game status to finished
-                    await supabaseClient
-                        .from('games')
-                        .update({ status: 'finished', winner: currentUserId })
-                        .eq('id', currentGameId);
-                } else if (newHand.length === 1) {
-                    showMessage("🔥 UNO! Son kartın!", 'info');
                 }
 
             } catch (error) {
@@ -1603,113 +1912,5 @@
             }
         });
     </script>
-    <!-- UNO Wild Color Picker -->
-<div id="unoColorPicker" class="uno-color-picker-backdrop" style="display:none;">
-  <div class="uno-color-picker" role="dialog" aria-labelledby="unoColorTitle" aria-modal="true">
-    <div id="unoColorTitle" class="uno-color-title">Bir renk seç</div>
-    <div class="uno-color-grid">
-      <button class="uno-color-btn" data-color="red"    aria-label="Kırmızı"></button>
-      <button class="uno-color-btn" data-color="yellow" aria-label="Sarı"></button>
-      <button class="uno-color-btn" data-color="green"  aria-label="Yeşil"></button>
-      <button class="uno-color-btn" data-color="blue"   aria-label="Mavi"></button>
-    </div>
-    <button class="uno-cancel-btn" type="button">İptal</button>
-  </div>
-</div>
-<script>
-/* === 3.A: Yardımcılar === */
-function isWildCard(card) {
-  return card?.type === 'WILD' || card?.type === 'WILD_DRAW_FOUR'
-      || card?.value === 'WILD' || card?.value === 'WILD_DRAW_FOUR';
-}
-
-function openUnoColorPicker() {
-  const backdrop = document.getElementById('unoColorPicker');
-  if (!backdrop) return Promise.resolve(null);
-  backdrop.style.display = 'flex';
-
-  return new Promise(resolve => {
-    const onPick = (e) => {
-      const btn = e.target.closest('.uno-color-btn');
-      if (btn) cleanup(btn.getAttribute('data-color'));
-    };
-    const onCancel = () => cleanup(null);
-    const onEsc = (e) => { if (e.key === 'Escape') cleanup(null); };
-
-    function cleanup(color) {
-      backdrop.style.display = 'none';
-      backdrop.removeEventListener('click', onPick);
-      document.removeEventListener('keydown', onEsc);
-      cancelBtn.removeEventListener('click', onCancel);
-      resolve(color);
-    }
-    const cancelBtn = backdrop.querySelector('.uno-cancel-btn');
-    backdrop.addEventListener('click', onPick);
-    document.addEventListener('keydown', onEsc);
-    cancelBtn.addEventListener('click', onCancel);
-  });
-}
-
-function applyChosenColorToState(color, card, state) {
-  if (!color) return;
-  try {
-    if (state) state.currentColor = color;           // oyun durumuna yaz
-    if (card)  { card.color = color; }               // kart nesnesini işaretle
-    if (typeof updateActiveColorIndicator === 'function') {
-      updateActiveColorIndicator(color);             // varsa UI göstergeni tazele
-    }
-  } catch {}
-}
-
-async function handlePostPlayIfWild(card, state) {
-  if (!isWildCard(card)) return false;
-  const color = await openUnoColorPicker();
-  if (!color) return false;
-  applyChosenColorToState(color, card, state);
-
-  const isDraw4 = (card?.type === 'WILD_DRAW_FOUR' || card?.value === 'WILD_DRAW_FOUR');
-  if (isDraw4) {
-    try {
-      // oyununda bu isimler farklı olabilir; varsa çalışır, yoksa sessiz geçer
-      if (typeof getNextPlayer === 'function' && typeof forceDraw === 'function') {
-        const target = getNextPlayer();
-        forceDraw(target, 4);
-        if (typeof skipNextPlayer === 'function') skipNextPlayer();
-      }
-    } catch {}
-  }
-  return true;
-}
-
-/* === 3.B: Oto-entegrasyon (mevcut playCard'ı bozmadan sarmalar) === */
-(function attachWildHook(){
-  // global state tahmini (senin oyunda farklı olabilir)
-  const stateRef = (window.__GAME_STATE__ || window.gameState || window.STATE || null);
-
-  // 1) Eğer global playCard varsa: decorator ile sarmala
-  if (typeof window.playCard === 'function') {
-    const original = window.playCard;
-    window.playCard = async function wrappedPlayCard(card, ...rest) {
-      const result = await original.apply(this, [card, ...rest]);
-      try { await handlePostPlayIfWild(card, stateRef); } catch {}
-      return result;
-    };
-    return;
-  }
-
-  // 2) Oyun kartı bırakmayı bir "event" ile duyuruyorsa, dinle
-  try {
-    window.addEventListener('uno:cardPlayed', async (ev) => {
-      const { card, state } = ev.detail || {};
-      await handlePostPlayIfWild(card, state || stateRef);
-    });
-  } catch {}
-
-  // 3) UI değişimini izleyerek tetiklemek istersen (yedek plan – ağır değil)
-  // (İhtiyaç olmazsa elleme; DOM’a bağlı projelerde işe yarar.)
-})();
-</script>
-
 </body>
 </html>
-
