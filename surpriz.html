@@ -1184,12 +1184,12 @@
             try {
                 showMessage("Oyuna katılınıyor...", 'info');
 
-                // First, get the game without .single() to avoid multiple rows error
+                // First, get the game
                 const { data: games, error } = await supabaseClient
                     .from('games')
                     .select('*')
                     .eq('id', gameId)
-                    .order('created_at', { ascending: false }); // Get the most recent one if duplicates exist
+                    .order('created_at', { ascending: false });
 
                 console.log('Games found:', games, 'Error:', error);
 
@@ -1204,7 +1204,6 @@
                     return;
                 }
 
-                // Take the first (most recent) game if multiple exist
                 const data = games[0];
                 console.log('Using game:', data);
 
@@ -1226,31 +1225,86 @@
                     return;
                 }
                 
-                // Add player to game
-                const newPlayers = [...(data.players || []), currentUserId];
+                // Add player to game - Updated approach
+                const currentPlayers = data.players || [];
+                const newPlayers = [...currentPlayers, currentUserId];
                 
+                console.log('Current players:', currentPlayers);
+                console.log('New players array:', newPlayers);
+                console.log('Current user ID:', currentUserId);
+
                 const updateData = {
                     players: newPlayers,
-                    player_count: newPlayers.length
+                    player_count: newPlayers.length,
+                    updated_at: new Date().toISOString()
                 };
 
                 console.log('Updating game with:', updateData);
 
+                // Try different update approaches
                 const { error: updateError, data: updatedGames } = await supabaseClient
                     .from('games')
                     .update(updateData)
                     .eq('id', gameId)
-                    .select()
-                    .order('created_at', { ascending: false });
+                    .select();
                 
                 if (updateError) {
                     console.error('Game update error:', updateError);
-                    showMessage("Oyuna katılırken hata: " + updateError.message, 'error');
+                    
+                    // Try alternative update method if first fails
+                    console.log('Trying alternative update method...');
+                    const { error: altError, data: altData } = await supabaseClient
+                        .rpc('add_player_to_game', {
+                            game_id: gameId,
+                            player_id: currentUserId
+                        });
+
+                    if (altError) {
+                        console.error('Alternative update also failed:', altError);
+                        showMessage("Oyuna katılma hatası. Lütfen tekrar deneyin.", 'error');
+                        return;
+                    }
+
+                    // If RPC worked, fetch the updated game
+                    const { data: finalGameData } = await supabaseClient
+                        .from('games')
+                        .select('*')
+                        .eq('id', gameId)
+                        .order('created_at', { ascending: false });
+                    
+                    if (finalGameData && finalGameData.length > 0) {
+                        const updatedData = finalGameData[0];
+                        console.log('Joined game successfully via RPC:', updatedData);
+                        currentGameId = gameId;
+                        renderGame(updatedData);
+                        listenForGameUpdates(gameId);
+                        showMessage("Oyuna başarıyla katıldınız!", 'success');
+                    }
                     return;
                 }
 
                 if (!updatedGames || updatedGames.length === 0) {
-                    showMessage("Oyun güncellenemedi.", 'error');
+                    showMessage("Oyun güncellenemedi. RLS politika sorunu olabilir.", 'error');
+                    console.log('No games returned after update. Checking RLS policies...');
+                    
+                    // Try to fetch the game again to see if update actually worked
+                    const { data: checkGames } = await supabaseClient
+                        .from('games')
+                        .select('*')
+                        .eq('id', gameId);
+                    
+                    if (checkGames && checkGames.length > 0) {
+                        const gameData = checkGames[0];
+                        if (gameData.players && gameData.players.includes(currentUserId)) {
+                            console.log('Update actually worked, just not returned due to RLS');
+                            currentGameId = gameId;
+                            renderGame(gameData);
+                            listenForGameUpdates(gameId);
+                            showMessage("Oyuna başarıyla katıldınız!", 'success');
+                            return;
+                        }
+                    }
+                    
                     return;
                 }
 
@@ -1259,6 +1313,7 @@
                 currentGameId = gameId;
                 renderGame(updatedData);
                 listenForGameUpdates(gameId);
+                showMessage("Oyuna başarıyla katıldınız!", 'success');
                 
             } catch (error) {
                 console.error('Unexpected join error:', error);
