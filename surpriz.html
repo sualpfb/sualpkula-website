@@ -456,21 +456,6 @@
             box-shadow: 0 5px 15px rgba(220, 53, 69, 0.4);
         }
 
-        /* Debug Panel */
-        .debug-panel {
-            position: fixed;
-            top: 80px;
-            left: 20px;
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 10px;
-            border-radius: 5px;
-            font-size: 12px;
-            max-width: 300px;
-            word-wrap: break-word;
-            z-index: 1001;
-        }
-
         /* Responsive Design */
         @media (max-width: 768px) {
             .game-container {
@@ -506,9 +491,6 @@
 <body>
     <div class="game-container">
         <button class="back-button" onclick="goBack()">← Ana Sayfa</button>
-        
-        <!-- Debug Panel (geliştirme için) -->
-        <div id="debug-panel" class="debug-panel" style="display: none;"></div>
         
         <!-- Game Header (Oyun ID gösterimi için) -->
         <div class="game-header" id="game-header" style="display: none;">
@@ -607,8 +589,6 @@
         let currentUserId = null;
         let currentGameId = null;
         let gameSubscription = null;
-        let pollInterval = null;
-        let debugMode = false;
 
         // Game Constants
         const colors = ["red", "green", "blue", "yellow"];
@@ -675,7 +655,7 @@
             hands: {},
             discardPile: [],
             currentPlayerIndex: 0,
-            status: 'waiting',
+            status: 'waiting', // waiting, playing, finished
             maxPlayers: 4
         };
 
@@ -694,22 +674,11 @@
         const gameBoard = document.getElementById('game-board');
         const playerHands = document.getElementById('player-hands');
         const gameInfo = document.getElementById('game-info');
-        const debugPanel = document.getElementById('debug-panel');
-
-        // Debug Functions
-        function debugLog(message) {
-            console.log(message);
-            if (debugMode && debugPanel) {
-                debugPanel.innerHTML = `<strong>Debug:</strong><br>${JSON.stringify(message, null, 2)}`;
-                debugPanel.style.display = 'block';
-            }
-        }
 
         // Utility Functions
         function showMessage(message, type = 'info') {
             statusMessage.textContent = message;
             statusMessage.className = `status-message ${type}`;
-            debugLog(`Message: ${message} (${type})`);
         }
 
         function goBack() {
@@ -721,55 +690,10 @@
             return Math.random().toString(36).substr(2, 6).toUpperCase();
         }
 
-        // Game State Management
-        async function refreshGameState() {
-            if (!currentGameId) return;
-            
-            try {
-                const { data, error } = await supabaseClient
-                    .from('games')
-                    .select('*')
-                    .eq('id', currentGameId)
-                    .single();
-
-                if (error) {
-                    console.error('Game refresh error:', error);
-                    return;
-                }
-
-                if (data) {
-                    debugLog('Game state refreshed');
-                    renderGame(data);
-                }
-            } catch (error) {
-                console.error('Unexpected refresh error:', error);
-            }
-        }
-
-        function startPolling() {
-            // Fallback polling her 2 saniyede bir
-            if (pollInterval) clearInterval(pollInterval);
-            
-            pollInterval = setInterval(() => {
-                if (currentGameId) {
-                    refreshGameState();
-                }
-            }, 2000);
-        }
-
-        function stopPolling() {
-            if (pollInterval) {
-                clearInterval(pollInterval);
-                pollInterval = null;
-            }
-        }
-
         // Render Functions
         function renderPlayersList() {
             const playersList = document.getElementById('players-list');
             playersList.innerHTML = '';
-            
-            debugLog(`Rendering players list: ${gameState.players.length} players`);
             
             for (let i = 0; i < 4; i++) {
                 const slot = document.createElement('div');
@@ -789,19 +713,12 @@
                 playersList.appendChild(slot);
             }
             
-            // Start button kontrolü - sadece oyun oluşturan kişi başlatabilir
-            const canStart = gameState.players.length >= 2 && 
-                            gameState.status === 'waiting' && 
-                            gameState.players[0] === currentUserId;
+            // Start button kontrolü
+            const canStart = gameState.players.length >= 2 && gameState.status === 'waiting';
             startGameBtn.disabled = !canStart;
-            
-            if (canStart) {
-                startGameBtn.textContent = `🚀 Oyunu Başlat (${gameState.players.length} oyuncu)`;
-            } else if (gameState.players[0] !== currentUserId) {
-                startGameBtn.textContent = '⏳ Oyun sahibinin başlatmasını bekleyin';
-            } else {
-                startGameBtn.textContent = '🚀 Oyunu Başlat (Min 2 oyuncu gerekli)';
-            }
+            startGameBtn.textContent = canStart ? 
+                `🚀 Oyunu Başlat (${gameState.players.length} oyuncu)` : 
+                `🚀 Oyunu Başlat (Min 2 oyuncu gerekli)`;
         }
 
         function renderCards() {
@@ -941,7 +858,7 @@
         }
 
         function renderGame(game) {
-            debugLog('Rendering game:', game);
+            console.log('Rendering game:', game);
             
             // Update game state
             gameState.id = game.id;
@@ -1066,8 +983,7 @@
                     hands: newHands,
                     discard_pile: newDiscardPile,
                     current_player_index: nextPlayerIndex,
-                    deck: gameState.deck,
-                    updated_at: new Date().toISOString()
+                    deck: gameState.deck
                 };
 
                 const { error } = await supabaseClient
@@ -1087,7 +1003,7 @@
                     // Update game status to finished
                     await supabaseClient
                         .from('games')
-                        .update({ status: 'finished', winner: currentUserId, updated_at: new Date().toISOString() })
+                        .update({ status: 'finished', winner: currentUserId })
                         .eq('id', currentGameId);
                 } else if (newHand.length === 1) {
                     showMessage("🔥 UNO! Son kartın!", 'info');
@@ -1132,8 +1048,7 @@
                 const updateData = {
                     hands: newHands,
                     deck: newDeck,
-                    current_player_index: nextPlayerIndex,
-                    updated_at: new Date().toISOString()
+                    current_player_index: nextPlayerIndex
                 };
 
                 const { error } = await supabaseClient
@@ -1162,6 +1077,251 @@
             else if (card.value === 'reverse') return 'Reverse';
             else if (card.value === 'draw2') return '+2';
             else return card.value;
+        }
+
+        // Game Management Functions
+        async function createGame() {
+            if (!currentUserId) {
+                showMessage("Kullanıcı bilgileri yükleniyor, lütfen bekleyin.", 'error');
+                return;
+            }
+
+            createGameBtn.disabled = true;
+            const originalText = createGameBtn.textContent;
+            createGameBtn.textContent = '⏳ Oluşturuluyor...';
+
+            try {
+                showMessage("Oyun oluşturuluyor...", 'info');
+                
+                let gameId;
+                let attempts = 0;
+                let gameCreated = false;
+
+                // Try to generate a unique game ID (max 10 attempts)
+                while (!gameCreated && attempts < 10) {
+                    gameId = generateGameId();
+                    
+                    // Check if this ID already exists
+                    const { data: existingGames } = await supabaseClient
+                        .from('games')
+                        .select('id')
+                        .eq('id', gameId);
+
+                    if (!existingGames || existingGames.length === 0) {
+                        // ID is unique, proceed with creation
+                        const newGame = {
+                            id: gameId,
+                            players: [currentUserId],
+                            player_count: 1,
+                            current_player_index: 0,
+                            deck: [],
+                            discard_pile: [],
+                            hands: {},
+                            status: 'waiting'
+                        };
+
+                        console.log('Creating game with data:', newGame);
+
+                        const { data, error } = await supabaseClient
+                            .from('games')
+                            .insert(newGame)
+                            .select();
+
+                        if (error) {
+                            console.error('Game creation error:', error);
+                            if (error.code === '23505') { // Unique constraint violation
+                                attempts++;
+                                continue; // Try with a new ID
+                            } else {
+                                showMessage("Oyun oluşturma hatası: " + error.message, 'error');
+                                return;
+                            }
+                        }
+
+                        if (data && data.length > 0) {
+                            console.log('Game created successfully:', data[0]);
+                            currentGameId = data[0].id;
+                            renderGame(data[0]);
+                            listenForGameUpdates(data[0].id);
+                            gameCreated = true;
+                        }
+                    } else {
+                        attempts++;
+                        console.log(`Game ID ${gameId} already exists, trying again... (${attempts}/10)`);
+                    }
+                }
+
+                if (!gameCreated) {
+                    showMessage("Benzersiz oyun ID oluşturulamadı. Lütfen tekrar deneyin.", 'error');
+                    return;
+                }
+                
+            } catch (error) {
+                console.error('Unexpected error:', error);
+                showMessage("Beklenmeyen hata: " + error.message, 'error');
+            } finally {
+                createGameBtn.disabled = false;
+                createGameBtn.textContent = originalText;
+            }
+        }
+
+        async function joinGame() {
+            if (!currentUserId) {
+                showMessage("Kullanıcı bilgileri yükleniyor, lütfen bekleyin.", 'error');
+                return;
+            }
+            
+            const gameId = gameIdInput.value.trim().toUpperCase();
+            if (!gameId) {
+                showMessage("Lütfen bir oyun ID'si girin.", 'error');
+                return;
+            }
+
+            joinGameBtn.disabled = true;
+            const originalText = joinGameBtn.textContent;
+            joinGameBtn.textContent = '⏳ Katılınıyor...';
+
+            try {
+                showMessage("Oyuna katılınıyor...", 'info');
+
+                // First, get the game
+                const { data: games, error } = await supabaseClient
+                    .from('games')
+                    .select('*')
+                    .eq('id', gameId)
+                    .order('created_at', { ascending: false });
+
+                console.log('Games found:', games, 'Error:', error);
+
+                if (error) {
+                    console.error('Game fetch error:', error);
+                    showMessage("Oyun arama hatası: " + error.message, 'error');
+                    return;
+                }
+
+                if (!games || games.length === 0) {
+                    showMessage("Oyun bulunamadı. ID'yi kontrol edin.", 'error');
+                    return;
+                }
+
+                const data = games[0];
+                console.log('Using game:', data);
+
+                if (data.players && data.players.length >= 4) {
+                    showMessage("Oyun zaten dolu (4/4 oyuncu).", 'error');
+                    return;
+                }
+                
+                if (data.players && data.players.includes(currentUserId)) {
+                    showMessage("Bu oyuna zaten katıldınız!", 'success');
+                    currentGameId = gameId;
+                    renderGame(data);
+                    listenForGameUpdates(gameId);
+                    return;
+                }
+                
+                if (data.status !== 'waiting') {
+                    showMessage("Bu oyun zaten başlamış!", 'error');
+                    return;
+                }
+                
+                // Add player to game - Updated approach
+                const currentPlayers = data.players || [];
+                const newPlayers = [...currentPlayers, currentUserId];
+                
+                console.log('Current players:', currentPlayers);
+                console.log('New players array:', newPlayers);
+                console.log('Current user ID:', currentUserId);
+
+                const updateData = {
+                    players: newPlayers,
+                    player_count: newPlayers.length,
+                    updated_at: new Date().toISOString()
+                };
+
+                console.log('Updating game with:', updateData);
+
+                // Try different update approaches
+                const { error: updateError, data: updatedGames } = await supabaseClient
+                    .from('games')
+                    .update(updateData)
+                    .eq('id', gameId)
+                    .select();
+                
+                if (updateError) {
+                    console.error('Game update error:', updateError);
+                    
+                    // Try alternative update method if first fails
+                    console.log('Trying alternative update method...');
+                    const { error: altError, data: altData } = await supabaseClient
+                        .rpc('add_player_to_game', {
+                            game_id: gameId,
+                            player_id: currentUserId
+                        });
+
+                    if (altError) {
+                        console.error('Alternative update also failed:', altError);
+                        showMessage("Oyuna katılma hatası. Lütfen tekrar deneyin.", 'error');
+                        return;
+                    }
+
+                    // If RPC worked, fetch the updated game
+                    const { data: finalGameData } = await supabaseClient
+                        .from('games')
+                        .select('*')
+                        .eq('id', gameId)
+                        .order('created_at', { ascending: false });
+                    
+                    if (finalGameData && finalGameData.length > 0) {
+                        const updatedData = finalGameData[0];
+                        console.log('Joined game successfully via RPC:', updatedData);
+                        currentGameId = gameId;
+                        renderGame(updatedData);
+                        listenForGameUpdates(gameId);
+                        showMessage("Oyuna başarıyla katıldınız!", 'success');
+                    }
+                    return;
+                }
+
+                if (!updatedGames || updatedGames.length === 0) {
+                    showMessage("Oyun güncellenemedi. RLS politika sorunu olabilir.", 'error');
+                    console.log('No games returned after update. Checking RLS policies...');
+                    
+                    // Try to fetch the game again to see if update actually worked
+                    const { data: checkGames } = await supabaseClient
+                        .from('games')
+                        .select('*')
+                        .eq('id', gameId);
+                    
+                    if (checkGames && checkGames.length > 0) {
+                        const gameData = checkGames[0];
+                        if (gameData.players && gameData.players.includes(currentUserId)) {
+                            console.log('Update actually worked, just not returned due to RLS');
+                            currentGameId = gameId;
+                            renderGame(gameData);
+                            listenForGameUpdates(gameId);
+                            showMessage("Oyuna başarıyla katıldınız!", 'success');
+                            return;
+                        }
+                    }
+                    
+                    return;
+                }
+
+                const updatedData = updatedGames[0];
+                console.log('Joined game successfully:', updatedData);
+                currentGameId = gameId;
+                renderGame(updatedData);
+                listenForGameUpdates(gameId);
+                showMessage("Oyuna başarıyla katıldınız!", 'success');
+                
+            } catch (error) {
+                console.error('Unexpected join error:', error);
+                showMessage("Beklenmeyen hata: " + error.message, 'error');
+            } finally {
+                joinGameBtn.disabled = false;
+                joinGameBtn.textContent = originalText;
+            }
         }
 
         async function startGame() {
@@ -1198,10 +1358,10 @@
                     deck: deck.cards,
                     discard_pile: [firstCard],
                     hands: hands,
-                    status: 'playing',
-                    updated_at: new Date().toISOString()
+                    status: 'playing'
                 };
 
+                // Remove .single() here too to avoid multiple rows error
                 const { error, data } = await supabaseClient
                     .from('games')
                     .update(gameData)
@@ -1215,7 +1375,7 @@
                 }
 
                 if (data && data.length > 0) {
-                    debugLog('Game started successfully:', data[0]);
+                    console.log('Game started successfully:', data[0]);
                     showMessage("🎯 Oyun başladı! İyi şanslar!", 'success');
                 } else {
                     showMessage("Oyun başlatılırken bir sorun oluştu.", 'error');
@@ -1229,3 +1389,196 @@
                 startGameBtn.textContent = originalText;
             }
         }
+
+        async function leaveGame() {
+            if (!currentGameId) return;
+            
+            const confirmLeave = confirm("Oyundan ayrılmak istediğinize emin misiniz?");
+            if (!confirmLeave) return;
+
+            try {
+                const newPlayers = gameState.players.filter(p => p !== currentUserId);
+                const newHands = { ...gameState.hands };
+                delete newHands[currentUserId];
+
+                // If no players left, delete the game
+                if (newPlayers.length === 0) {
+                    await supabaseClient.from('games').delete().eq('id', currentGameId);
+                } else {
+                    // Update player count and adjust current player index if needed
+                    let newCurrentPlayerIndex = gameState.currentPlayerIndex;
+                    const leftPlayerIndex = gameState.players.indexOf(currentUserId);
+                    
+                    if (leftPlayerIndex <= gameState.currentPlayerIndex) {
+                        newCurrentPlayerIndex = Math.max(0, gameState.currentPlayerIndex - 1);
+                    }
+                    
+                    newCurrentPlayerIndex = newCurrentPlayerIndex % newPlayers.length;
+
+                    const updateData = {
+                        players: newPlayers,
+                        hands: newHands,
+                        player_count: newPlayers.length,
+                        current_player_index: newCurrentPlayerIndex
+                    };
+
+                    await supabaseClient.from('games').update(updateData).eq('id', currentGameId);
+                }
+
+                // Cleanup
+                if (gameSubscription) {
+                    gameSubscription.unsubscribe();
+                    gameSubscription = null;
+                }
+
+                currentGameId = null;
+                
+                // Return to lobby
+                gameArea.style.display = 'none';
+                gameHeader.style.display = 'none';
+                lobbySection.style.display = 'block';
+                showMessage("Oyundan ayrıldınız.", 'info');
+                
+            } catch (error) {
+                console.error('Leave game error:', error);
+                showMessage("Oyundan ayrılma hatası: " + error.message, 'error');
+            }
+        }
+
+        function copyGameId() {
+            const gameId = document.getElementById('current-game-id').textContent;
+            if (gameId && gameId !== '-') {
+                navigator.clipboard.writeText(gameId).then(() => {
+                    showMessage(`Oyun ID kopyalandı: ${gameId}`, 'success');
+                    copyGameIdBtn.innerHTML = '✅ Kopyalandı';
+                    setTimeout(() => {
+                        copyGameIdBtn.innerHTML = '📋 Kopyala';
+                    }, 2000);
+                }).catch(() => {
+                    showMessage("Kopyalama başarısız.", 'error');
+                });
+            }
+        }
+
+        function listenForGameUpdates(gameId) {
+            // Clean up existing subscription
+            if (gameSubscription) {
+                gameSubscription.unsubscribe();
+            }
+
+            console.log('Setting up real-time subscription for game:', gameId);
+            
+            gameSubscription = supabaseClient
+                .channel(`game:${gameId}`)
+                .on('postgres_changes', { 
+                    event: 'UPDATE', 
+                    schema: 'public', 
+                    table: 'games', 
+                    filter: `id=eq.${gameId}` 
+                }, payload => {
+                    console.log('Real-time update received:', payload.new);
+                    renderGame(payload.new);
+                })
+                .on('postgres_changes', { 
+                    event: 'DELETE', 
+                    schema: 'public', 
+                    table: 'games', 
+                    filter: `id=eq.${gameId}` 
+                }, payload => {
+                    console.log('Game deleted:', payload);
+                    showMessage("Oyun sona erdi.", 'info');
+                    // Return to lobby
+                    gameArea.style.display = 'none';
+                    gameHeader.style.display = 'none';
+                    lobbySection.style.display = 'block';
+                })
+                .subscribe((status) => {
+                    console.log('Subscription status:', status);
+                });
+        }
+
+        // Authentication and Initialization
+        async function initializeAuth() {
+            try {
+                showMessage("Oturum kontrol ediliyor...", 'info');
+                createGameBtn.disabled = true;
+                joinGameBtn.disabled = true;
+
+                // Check Supabase auth
+                const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+                
+                if (authError) {
+                    console.error('Auth error:', authError);
+                    throw authError;
+                }
+
+                if (!user) {
+                    throw new Error('User not authenticated');
+                }
+
+                // Get user profile
+                const { data: profile, error: profileError } = await supabaseClient
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', user.id)
+                    .single();
+
+                if (profileError) {
+                    console.warn('Profile not found, using auth user data');
+                }
+
+                currentUserEmail = user.email;
+                currentUserId = user.id;
+                
+                console.log("User authenticated:", { 
+                    email: currentUserEmail, 
+                    id: currentUserId,
+                    profile: profile ? profile.ad : 'No profile'
+                });
+                
+                showMessage(`Hoş geldin ${profile?.ad || user.email}! Oyun oluşturabilir veya oyuna katılabilirsin.`, 'success');
+                createGameBtn.disabled = false;
+                joinGameBtn.disabled = false;
+                
+            } catch (error) {
+                console.error('Auth initialization failed:', error);
+                showMessage("Oturum hatası. Ana sayfaya dönülüyor...", 'error');
+                setTimeout(() => {
+                    window.location.href = "home.html";
+                }, 2000);
+            }
+        }
+
+        // Event Listeners
+        createGameBtn.addEventListener('click', createGame);
+        joinGameBtn.addEventListener('click', joinGame);
+        startGameBtn.addEventListener('click', startGame);
+        leaveGameBtn.addEventListener('click', leaveGame);
+        copyGameIdBtn.addEventListener('click', copyGameId);
+
+        // Deck click handler
+        document.getElementById('deck-container').addEventListener('click', drawCard);
+
+        gameIdInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                joinGame();
+            }
+        });
+
+        // Auto-uppercase game ID input
+        gameIdInput.addEventListener('input', (e) => {
+            e.target.value = e.target.value.toUpperCase();
+        });
+
+        // Initialize when page loads
+        window.addEventListener('DOMContentLoaded', initializeAuth);
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (gameSubscription) {
+                gameSubscription.unsubscribe();
+            }
+        });
+    </script>
+</body>
+</html>
