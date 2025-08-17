@@ -486,6 +486,29 @@
                 justify-content: center;
             }
         }
+        <style id="unoPickerStyles">
+.uno-color-picker-backdrop {
+  position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,.45); z-index: 9999;
+}
+.uno-color-picker {
+  background: #121212; color: #fff; padding: 16px; border-radius: 16px; width: min(92vw, 360px);
+  box-shadow: 0 10px 30px rgba(0,0,0,.45); text-align: center; font-family: inherit;
+}
+.uno-color-title { font-size: 18px; font-weight: 700; margin-bottom: 12px; }
+.uno-color-grid  { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 12px; }
+.uno-color-btn { width: 56px; height: 56px; border-radius: 12px; border: none; cursor: pointer; outline: none; }
+.uno-color-btn[data-color="red"]    { background: #d93025; }
+.uno-color-btn[data-color="yellow"] { background: #f2c10d; }
+.uno-color-btn[data-color="green"]  { background: #17a34a; }
+.uno-color-btn[data-color="blue"]   { background: #2563eb; }
+.uno-color-btn:focus { outline: 3px solid rgba(255,255,255,.45); }
+.uno-cancel-btn {
+  width: 100%; background: #2e2e2e; color: #fff; border: none; padding: 10px 12px; border-radius: 10px; cursor: pointer;
+}
+.uno-cancel-btn:focus { outline: 3px solid rgba(255,255,255,.45); }
+</style>
+
     </style>
 </head>
 <body>
@@ -1580,5 +1603,113 @@
             }
         });
     </script>
+    <!-- UNO Wild Color Picker -->
+<div id="unoColorPicker" class="uno-color-picker-backdrop" style="display:none;">
+  <div class="uno-color-picker" role="dialog" aria-labelledby="unoColorTitle" aria-modal="true">
+    <div id="unoColorTitle" class="uno-color-title">Bir renk seç</div>
+    <div class="uno-color-grid">
+      <button class="uno-color-btn" data-color="red"    aria-label="Kırmızı"></button>
+      <button class="uno-color-btn" data-color="yellow" aria-label="Sarı"></button>
+      <button class="uno-color-btn" data-color="green"  aria-label="Yeşil"></button>
+      <button class="uno-color-btn" data-color="blue"   aria-label="Mavi"></button>
+    </div>
+    <button class="uno-cancel-btn" type="button">İptal</button>
+  </div>
+</div>
+<script>
+/* === 3.A: Yardımcılar === */
+function isWildCard(card) {
+  return card?.type === 'WILD' || card?.type === 'WILD_DRAW_FOUR'
+      || card?.value === 'WILD' || card?.value === 'WILD_DRAW_FOUR';
+}
+
+function openUnoColorPicker() {
+  const backdrop = document.getElementById('unoColorPicker');
+  if (!backdrop) return Promise.resolve(null);
+  backdrop.style.display = 'flex';
+
+  return new Promise(resolve => {
+    const onPick = (e) => {
+      const btn = e.target.closest('.uno-color-btn');
+      if (btn) cleanup(btn.getAttribute('data-color'));
+    };
+    const onCancel = () => cleanup(null);
+    const onEsc = (e) => { if (e.key === 'Escape') cleanup(null); };
+
+    function cleanup(color) {
+      backdrop.style.display = 'none';
+      backdrop.removeEventListener('click', onPick);
+      document.removeEventListener('keydown', onEsc);
+      cancelBtn.removeEventListener('click', onCancel);
+      resolve(color);
+    }
+    const cancelBtn = backdrop.querySelector('.uno-cancel-btn');
+    backdrop.addEventListener('click', onPick);
+    document.addEventListener('keydown', onEsc);
+    cancelBtn.addEventListener('click', onCancel);
+  });
+}
+
+function applyChosenColorToState(color, card, state) {
+  if (!color) return;
+  try {
+    if (state) state.currentColor = color;           // oyun durumuna yaz
+    if (card)  { card.color = color; }               // kart nesnesini işaretle
+    if (typeof updateActiveColorIndicator === 'function') {
+      updateActiveColorIndicator(color);             // varsa UI göstergeni tazele
+    }
+  } catch {}
+}
+
+async function handlePostPlayIfWild(card, state) {
+  if (!isWildCard(card)) return false;
+  const color = await openUnoColorPicker();
+  if (!color) return false;
+  applyChosenColorToState(color, card, state);
+
+  const isDraw4 = (card?.type === 'WILD_DRAW_FOUR' || card?.value === 'WILD_DRAW_FOUR');
+  if (isDraw4) {
+    try {
+      // oyununda bu isimler farklı olabilir; varsa çalışır, yoksa sessiz geçer
+      if (typeof getNextPlayer === 'function' && typeof forceDraw === 'function') {
+        const target = getNextPlayer();
+        forceDraw(target, 4);
+        if (typeof skipNextPlayer === 'function') skipNextPlayer();
+      }
+    } catch {}
+  }
+  return true;
+}
+
+/* === 3.B: Oto-entegrasyon (mevcut playCard'ı bozmadan sarmalar) === */
+(function attachWildHook(){
+  // global state tahmini (senin oyunda farklı olabilir)
+  const stateRef = (window.__GAME_STATE__ || window.gameState || window.STATE || null);
+
+  // 1) Eğer global playCard varsa: decorator ile sarmala
+  if (typeof window.playCard === 'function') {
+    const original = window.playCard;
+    window.playCard = async function wrappedPlayCard(card, ...rest) {
+      const result = await original.apply(this, [card, ...rest]);
+      try { await handlePostPlayIfWild(card, stateRef); } catch {}
+      return result;
+    };
+    return;
+  }
+
+  // 2) Oyun kartı bırakmayı bir "event" ile duyuruyorsa, dinle
+  try {
+    window.addEventListener('uno:cardPlayed', async (ev) => {
+      const { card, state } = ev.detail || {};
+      await handlePostPlayIfWild(card, state || stateRef);
+    });
+  } catch {}
+
+  // 3) UI değişimini izleyerek tetiklemek istersen (yedek plan – ağır değil)
+  // (İhtiyaç olmazsa elleme; DOM’a bağlı projelerde işe yarar.)
+})();
+</script>
+
 </body>
 </html>
+
