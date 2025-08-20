@@ -607,6 +607,73 @@
             color: white;
         }
 
+        /* Username Modal */
+        .username-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+        }
+
+        .username-content {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .username-content h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .username-content input {
+            width: 100%;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 10px;
+            border: 2px solid #ddd;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .username-content input:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        .username-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .username-buttons button {
+            width: auto;
+            min-width: 120px;
+        }
+
+        /* Continue Game Button */
+        .continue-game-btn {
+            background: linear-gradient(45deg, #ff9800, #ff5722);
+            margin-top: 15px;
+        }
+
+        .continue-game-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 152, 0, 0.4);
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .game-container {
@@ -652,6 +719,10 @@
             .opponents-grid {
                 grid-template-columns: 1fr;
             }
+
+            .username-buttons {
+                flex-direction: column;
+            }
         }
 
         @media (max-width: 480px) {
@@ -683,6 +754,17 @@
     </style>
 </head>
 <body>
+    <!-- Username Modal -->
+    <div class="username-modal" id="username-modal">
+        <div class="username-content">
+            <h2>Kullanıcı Adınızı Seçin</h2>
+            <input type="text" id="username-input" placeholder="Kullanıcı adınız (3-15 karakter)" maxlength="15">
+            <div class="username-buttons">
+                <button id="confirm-username" class="btn-primary">Onayla</button>
+            </div>
+        </div>
+    </div>
+
     <div class="game-container">
         <button class="back-button" onclick="goBack()">← Ana Sayfa</button>
         
@@ -780,6 +862,7 @@
             <div class="score-display">Skorlar:</div>
             <div id="scores-container"></div>
             <button class="btn-primary" onclick="closeGameEndModal()">Tamam</button>
+            <button id="continue-game-btn" class="continue-game-btn">🔄 Aynı Lobi ile Devam Et</button>
         </div>
     </div>
 
@@ -807,6 +890,7 @@
         // Global Variables
         let currentUserEmail = null;
         let currentUserId = null;
+        let currentUsername = null;
         let currentGameId = null;
         let gameSubscription = null;
         let colorSelectionResolve = null;
@@ -873,13 +957,15 @@
             id: null,
             deck: [],
             players: [],
+            playerNames: {},
             hands: {},
             discardPile: [],
             currentPlayerIndex: 0,
             status: 'waiting', // waiting, playing, finished
             maxPlayers: 4,
             winner: null,
-            scores: {}
+            scores: {},
+            direction: 1 // 1: ileri, -1: geri
         };
 
         // DOM Elements
@@ -900,6 +986,10 @@
         const unoCallBtn = document.getElementById('uno-call-btn');
         const gameEndModal = document.getElementById('game-end-modal');
         const colorPicker = document.getElementById('color-picker');
+        const usernameModal = document.getElementById('username-modal');
+        const usernameInput = document.getElementById('username-input');
+        const confirmUsernameBtn = document.getElementById('confirm-username');
+        const continueGameBtn = document.getElementById('continue-game-btn');
 
         // Utility Functions
         function showMessage(message, type = 'info') {
@@ -922,15 +1012,17 @@
             if (winnerId === currentUserId) {
                 winnerMessage.textContent = "🎉 Tebrikler, kazandınız! 🎉";
             } else {
-                winnerMessage.textContent = "Oyuncu kazandı!";
+                const winnerName = gameState.playerNames[winnerId] || `Oyuncu ${gameState.players.indexOf(winnerId) + 1}`;
+                winnerMessage.textContent = `🎉 ${winnerName} kazandı!`;
             }
             
             scoresContainer.innerHTML = '';
             Object.entries(scores).forEach(([playerId, score]) => {
                 const scoreElement = document.createElement('div');
                 scoreElement.className = `player-score ${playerId === currentUserId ? 'you' : ''}`;
+                const playerName = playerId === currentUserId ? 'Sen' : (gameState.playerNames[playerId] || `Oyuncu ${gameState.players.indexOf(playerId) + 1}`);
                 scoreElement.innerHTML = `
-                    <span>${playerId === currentUserId ? 'Sen' : 'Oyuncu'}</span>
+                    <span>${playerName}</span>
                     <span>${score} puan</span>
                 `;
                 scoresContainer.appendChild(scoreElement);
@@ -941,7 +1033,6 @@
 
         function closeGameEndModal() {
             gameEndModal.style.display = 'none';
-            leaveGame();
         }
 
         async function selectColor() {
@@ -983,7 +1074,7 @@
                 if (i < gameState.players.length) {
                     const playerId = gameState.players[i];
                     const isMe = playerId === currentUserId;
-                    const playerName = isMe ? 'Sen' : `Oyuncu ${i + 1}`;
+                    const playerName = isMe ? 'Sen' : (gameState.playerNames[playerId] || `Oyuncu ${i + 1}`);
                     slot.innerHTML = `${i + 1}. ${isMe ? '👤' : '🎮'} ${playerName} ✅`;
                     slot.classList.add('filled');
                 } else {
@@ -1064,6 +1155,7 @@
             // Render opponents
             gameState.players.filter(p => p !== currentUserId).forEach((opponentId, index) => {
                 const numCards = gameState.hands && gameState.hands[opponentId] ? gameState.hands[opponentId].length : 0;
+                const opponentName = gameState.playerNames[opponentId] || `Oyuncu ${index + 2}`;
                 
                 const opponentDiv = document.createElement('div');
                 opponentDiv.className = 'opponent-container';
@@ -1073,7 +1165,7 @@
                 
                 opponentDiv.innerHTML = `
                     <div class="opponent-info">
-                        <strong>🎮 Oyuncu ${index + 2}</strong>
+                        <strong>🎮 ${opponentName}</strong>
                         <div>
                             <span>(${numCards} kart)</span>
                             ${turnIndicator}
@@ -1133,9 +1225,9 @@
                 turnIndicator.textContent = '🎯 Senin Sıran!';
                 turnIndicator.className = 'turn-indicator my-turn';
             } else {
-                const currentPlayerIndex = gameState.currentPlayerIndex;
-                const playerCount = gameState.players.filter(p => p !== currentUserId).length;
-                turnIndicator.textContent = `🎮 Oyuncu ${getCurrentPlayerNumber()}'nın sırası`;
+                const currentPlayerId = gameState.players[gameState.currentPlayerIndex];
+                const currentPlayerName = gameState.playerNames[currentPlayerId] || `Oyuncu ${getCurrentPlayerNumber()}`;
+                turnIndicator.textContent = `🎮 ${currentPlayerName}'nın sırası`;
                 turnIndicator.className = 'turn-indicator opponent-turn';
             }
         }
@@ -1156,12 +1248,14 @@
             gameState.id = game.id;
             gameState.deck = game.deck || [];
             gameState.players = game.players || [];
+            gameState.playerNames = game.player_names || {};
             gameState.hands = game.hands || {};
             gameState.discardPile = game.discard_pile || [];
             gameState.currentPlayerIndex = game.current_player_index || 0;
             gameState.status = game.status || 'waiting';
             gameState.winner = game.winner || null;
             gameState.scores = game.scores || {};
+            gameState.direction = game.direction || 1;
             
             // Show appropriate sections
             if (game.status === 'waiting') {
@@ -1252,61 +1346,65 @@
                 };
 
                 // Calculate next player
-                let nextPlayerIndex = (gameState.currentPlayerIndex + 1) % gameState.players.length;
+                let nextPlayerIndex = (gameState.currentPlayerIndex + gameState.direction + gameState.players.length) % gameState.players.length;
                 
                 // Handle special cards
                 let skipNext = false;
+                let drawCards = 0;
+                
                 if (playedCard.value === 'skip') {
                     skipNext = true;
                 } else if (playedCard.value === 'reverse') {
-                    // For 2 players, reverse acts like skip
+                    // Yönü değiştir
+                    gameState.direction *= -1;
+                    // İki oyunculu oyunda reverse skip gibi çalışır
                     if (gameState.players.length === 2) {
-                        skipNext = true;
-                    } else {
-                        // Reverse the order - this is simplified, full implementation would track direction
                         skipNext = true;
                     }
                 } else if (playedCard.value === 'draw2') {
-                    // Next player draws 2 cards and loses turn
-                    const nextPlayerId = gameState.players[nextPlayerIndex];
-                    const nextPlayerHand = [...gameState.hands[nextPlayerId]];
-                    
-                    // Draw 2 cards for next player
-                    const newDeck = [...gameState.deck];
-                    for (let i = 0; i < 2 && newDeck.length > 0; i++) {
-                        const drawnCard = newDeck.pop();
-                        if (drawnCard) nextPlayerHand.push(drawnCard);
-                    }
-                    
-                    newHands[nextPlayerId] = nextPlayerHand;
-                    gameState.deck = newDeck;
+                    drawCards = 2;
                     skipNext = true;
                 } else if (playedCard.value === 'wildDraw4') {
-                    // Next player draws 4 cards and loses turn
-                    const nextPlayerId = gameState.players[nextPlayerIndex];
-                    const nextPlayerHand = [...gameState.hands[nextPlayerId]];
-                    
-                    // Draw 4 cards for next player
-                    const newDeck = [...gameState.deck];
-                    for (let i = 0; i < 4 && newDeck.length > 0; i++) {
-                        const drawnCard = newDeck.pop();
-                        if (drawnCard) nextPlayerHand.push(drawnCard);
-                    }
-                    
-                    newHands[nextPlayerId] = nextPlayerHand;
-                    gameState.deck = newDeck;
+                    drawCards = 4;
                     skipNext = true;
                 }
 
+                // Kart çekme işlemi
+                if (drawCards > 0) {
+                    const nextPlayerId = gameState.players[nextPlayerIndex];
+                    const nextPlayerHand = [...newHands[nextPlayerId]];
+                    
+                    // Yeterli kart yoksa desteyi yeniden karıştır
+                    if (gameState.deck.length < drawCards) {
+                        // Oynanmış kartları karıştırıp yeni deste yap (üstteki kart hariç)
+                        const topCard = newDiscardPile.pop();
+                        const newDeck = [...newDiscardPile];
+                        while (newDeck.length > 0) {
+                            const randomIndex = Math.floor(Math.random() * newDeck.length);
+                            gameState.deck.push(newDeck.splice(randomIndex, 1)[0]);
+                        }
+                        newDiscardPile = [topCard];
+                    }
+                    
+                    // Kartları çek
+                    for (let i = 0; i < drawCards && gameState.deck.length > 0; i++) {
+                        const drawnCard = gameState.deck.pop();
+                        if (drawnCard) nextPlayerHand.push(drawnCard);
+                    }
+                    
+                    newHands[nextPlayerId] = nextPlayerHand;
+                }
+
                 if (skipNext) {
-                    nextPlayerIndex = (nextPlayerIndex + 1) % gameState.players.length;
+                    nextPlayerIndex = (nextPlayerIndex + gameState.direction + gameState.players.length) % gameState.players.length;
                 }
 
                 const updateData = {
                     hands: newHands,
                     discard_pile: newDiscardPile,
                     current_player_index: nextPlayerIndex,
-                    deck: gameState.deck
+                    deck: gameState.deck,
+                    direction: gameState.direction
                 };
 
                 // Check for win
@@ -1375,12 +1473,13 @@
                 };
 
                 // Move to next player
-                const nextPlayerIndex = (gameState.currentPlayerIndex + 1) % gameState.players.length;
+                const nextPlayerIndex = (gameState.currentPlayerIndex + gameState.direction + gameState.players.length) % gameState.players.length;
 
                 const updateData = {
                     hands: newHands,
                     deck: newDeck,
-                    current_player_index: nextPlayerIndex
+                    current_player_index: nextPlayerIndex,
+                    direction: gameState.direction
                 };
 
                 const { error } = await supabaseClient
@@ -1444,12 +1543,14 @@
                         const newGame = {
                             id: gameId,
                             players: [currentUserId],
+                            player_names: { [currentUserId]: currentUsername },
                             player_count: 1,
                             current_player_index: 0,
                             deck: [],
                             discard_pile: [],
                             hands: {},
-                            status: 'waiting'
+                            status: 'waiting',
+                            direction: 1
                         };
 
                         console.log('Creating game with data:', newGame);
@@ -1561,12 +1662,16 @@
                 const currentPlayers = data.players || [];
                 const newPlayers = [...currentPlayers, currentUserId];
                 
+                const currentPlayerNames = data.player_names || {};
+                const newPlayerNames = { ...currentPlayerNames, [currentUserId]: currentUsername };
+                
                 console.log('Current players:', currentPlayers);
                 console.log('New players array:', newPlayers);
                 console.log('Current user ID:', currentUserId);
 
                 const updateData = {
                     players: newPlayers,
+                    player_names: newPlayerNames,
                     player_count: newPlayers.length,
                     updated_at: new Date().toISOString()
                 };
@@ -1588,7 +1693,8 @@
                     const { error: altError, data: altData } = await supabaseClient
                         .rpc('add_player_to_game', {
                             game_id: gameId,
-                            player_id: currentUserId
+                            player_id: currentUserId,
+                            player_name: currentUsername
                         });
 
                     if (altError) {
@@ -1690,7 +1796,8 @@
                     deck: deck.cards,
                     discard_pile: [firstCard],
                     hands: hands,
-                    status: 'playing'
+                    status: 'playing',
+                    direction: 1
                 };
 
                 // Remove .single() here too to avoid multiple rows error
@@ -1730,6 +1837,8 @@
 
             try {
                 const newPlayers = gameState.players.filter(p => p !== currentUserId);
+                const newPlayerNames = { ...gameState.playerNames };
+                delete newPlayerNames[currentUserId];
                 const newHands = { ...gameState.hands };
                 delete newHands[currentUserId];
 
@@ -1749,6 +1858,7 @@
 
                     const updateData = {
                         players: newPlayers,
+                        player_names: newPlayerNames,
                         hands: newHands,
                         player_count: newPlayers.length,
                         current_player_index: newCurrentPlayerIndex
@@ -1789,6 +1899,62 @@
                 }).catch(() => {
                     showMessage("Kopyalama başarısız.", 'error');
                 });
+            }
+        }
+
+        async function continueGame() {
+            try {
+                // Oyun durumunu sıfırla
+                const deck = new Deck();
+                const hands = {};
+                
+                // Her oyuncuya 7 kart dağıt
+                gameState.players.forEach(playerId => {
+                    hands[playerId] = deck.deal(7);
+                });
+                
+                // İlk kartı at (wild kart olmamasına dikkat et)
+                let firstCard;
+                do {
+                    firstCard = deck.draw();
+                } while (firstCard && firstCard.color === 'black');
+                
+                if (!firstCard) {
+                    showMessage("Deste oluşturulurken hata!", 'error');
+                    return;
+                }
+                
+                // Rastgele bir oyuncuyla başla
+                const randomPlayerIndex = Math.floor(Math.random() * gameState.players.length);
+                
+                const gameData = {
+                    deck: deck.cards,
+                    discard_pile: [firstCard],
+                    hands: hands,
+                    status: 'playing',
+                    current_player_index: randomPlayerIndex,
+                    direction: 1,
+                    winner: null,
+                    scores: {}
+                };
+
+                const { error } = await supabaseClient
+                    .from('games')
+                    .update(gameData)
+                    .eq('id', currentGameId);
+
+                if (error) {
+                    console.error('Continue game error:', error);
+                    showMessage("Oyun devam ettirme hatası: " + error.message, 'error');
+                    return;
+                }
+
+                showMessage("Yeni oyun başlatıldı! İyi şanslar!", 'success');
+                gameEndModal.style.display = 'none';
+                
+            } catch (error) {
+                console.error('Continue game error:', error);
+                showMessage("Oyun devam ettirme hatası: " + error.message, 'error');
             }
         }
 
@@ -1868,9 +2034,8 @@
                     profile: profile ? profile.ad : 'No profile'
                 });
                 
-                showMessage(`Hoş geldin ${profile?.ad || user.email}! Oyun oluşturabilir veya oyuna katılabilirsin.`, 'success');
-                createGameBtn.disabled = false;
-                joinGameBtn.disabled = false;
+                // Kullanıcı adı modal'ını göster
+                showUsernameModal();
                 
             } catch (error) {
                 console.error('Auth initialization failed:', error);
@@ -1881,12 +2046,70 @@
             }
         }
 
+        // Kullanıcı adı modal'ını göster
+        function showUsernameModal() {
+            usernameModal.style.display = 'flex';
+            
+            // Enter tuşu ile onaylama
+            usernameInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    confirmUsername();
+                }
+            });
+        }
+
+        // Kullanıcı adını onayla
+        function confirmUsername() {
+            const username = usernameInput.value.trim();
+            
+            if (username.length < 3) {
+                alert('Kullanıcı adı en az 3 karakter olmalıdır.');
+                return;
+            }
+            
+            if (username.length > 15) {
+                alert('Kullanıcı adı en fazla 15 karakter olabilir.');
+                return;
+            }
+            
+            currentUsername = username;
+            usernameModal.style.display = 'none';
+            
+            // Kullanıcı adını Supabase'de güncelle (profiles tablosuna)
+            updateUsernameInSupabase(username);
+            
+            showMessage(`Hoş geldin ${username}! Oyun oluşturabilir veya oyuna katılabilirsin.`, 'success');
+            createGameBtn.disabled = false;
+            joinGameBtn.disabled = false;
+        }
+
+        // Supabase'de kullanıcı adını güncelle
+        async function updateUsernameInSupabase(username) {
+            try {
+                const { error } = await supabaseClient
+                    .from('profiles')
+                    .upsert({ 
+                        id: currentUserId, 
+                        username: username,
+                        updated_at: new Date().toISOString()
+                    });
+                    
+                if (error) {
+                    console.error('Kullanıcı adı güncelleme hatası:', error);
+                }
+            } catch (error) {
+                console.error('Kullanıcı adı güncelleme hatası:', error);
+            }
+        }
+
         // Event Listeners
         createGameBtn.addEventListener('click', createGame);
         joinGameBtn.addEventListener('click', joinGame);
         startGameBtn.addEventListener('click', startGame);
         leaveGameBtn.addEventListener('click', leaveGame);
         copyGameIdBtn.addEventListener('click', copyGameId);
+        confirmUsernameBtn.addEventListener('click', confirmUsername);
+        continueGameBtn.addEventListener('click', continueGame);
 
         // Deck click handler
         document.getElementById('deck-container').addEventListener('click', drawCard);
