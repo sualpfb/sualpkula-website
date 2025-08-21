@@ -304,6 +304,301 @@
       }
     });
   </script>
+  <!-- Yapay Zeka Asistanı Widget'ı -->
+<div class="ai-assistant">
+  <div class="ai-assistant-button" onclick="toggleAIChat()">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15h-2v-6h2v6zm4 0h-2v-6h2v6zm-6-8c0-.55.45-1 1-1s1 .45 1 1-.45 1-1 1-1-.45-1-1zm8 0c0-.55.45-1 1-1s1 .45 1 1-.45 1-1 1-1-.45-1-1z"/>
+    </svg>
+  </div>
+  <div class="ai-assistant-window">
+    <div class="ai-assistant-header">
+      <h3>Sualp Kula'nın Asistanı</h3>
+      <button onclick="toggleAIChat()" class="close-button">×</button>
+    </div>
+    <div class="ai-assistant-messages" id="ai-messages">
+      <div class="message bot-message">
+        <div class="message-content">
+          <p>Selamlar! Ben Sualp Kula'nın yapay zeka asistanıyım. Size Sualp Kula hakkında bilgi verebilir, ders notları konusunda yardımcı olabilir veya genel sorularınızı yanıtlayabilirim. Nasıl yardımcı olabilirim?</p>
+        </div>
+      </div>
+    </div>
+    <div class="ai-assistant-input">
+      <input type="text" id="ai-input" placeholder="Buraya mesajınızı yazın..." onkeypress="handleAIKeyPress(event)">
+      <button onclick="sendAIMessage()">Gönder</button>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* AI Asistanı Stilleri */
+  .ai-assistant {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 10000;
+    font-family: 'Poppins', sans-serif;
+  }
+  
+  .ai-assistant-button {
+    width: 60px;
+    height: 60px;
+    background-color: #4e8cff;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+  }
+  
+  .ai-assistant-button:hover {
+    transform: scale(1.05);
+    background-color: #3a7bff;
+  }
+  
+  .ai-assistant-button svg {
+    width: 30px;
+    height: 30px;
+    fill: white;
+  }
+  
+  .ai-assistant-window {
+    position: absolute;
+    bottom: 70px;
+    right: 0;
+    width: 350px;
+    height: 450px;
+    background-color: white;
+    border-radius: 15px;
+    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  
+  .ai-assistant-header {
+    background: linear-gradient(135deg, #4e8cff 0%, #3a7bff 100%);
+    color: white;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .ai-assistant-header h3 {
+    margin: 0;
+    font-size: 16px;
+  }
+  
+  .close-button {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .ai-assistant-messages {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .message {
+    display: flex;
+    max-width: 80%;
+  }
+  
+  .bot-message {
+    align-self: flex-start;
+  }
+  
+  .user-message {
+    align-self: flex-end;
+  }
+  
+  .message-content {
+    padding: 10px 15px;
+    border-radius: 18px;
+    line-height: 1.4;
+  }
+  
+  .bot-message .message-content {
+    background-color: #f0f0f0;
+    color: #333;
+  }
+  
+  .user-message .message-content {
+    background-color: #4e8cff;
+    color: white;
+  }
+  
+  .ai-assistant-input {
+    display: flex;
+    padding: 15px;
+    border-top: 1px solid #ddd;
+    background: #f9f9f9;
+  }
+  
+  .ai-assistant-input input {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    outline: none;
+  }
+  
+  .ai-assistant-input button {
+    margin-left: 10px;
+    padding: 12px 20px;
+    background: #4e8cff;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+  }
+  
+  .ai-assistant-input button:hover {
+    background: #3a7bff;
+  }
+  
+  .typing-indicator {
+    display: none;
+    padding: 10px 15px;
+    background-color: #f0f0f0;
+    border-radius: 18px;
+    color: #666;
+    font-style: italic;
+  }
+</style>
+
+<script>
+  // Basit Yapay Zeka Asistanı İşlevselliği
+  let isAIChatOpen = false;
+  
+  function toggleAIChat() {
+    const chatWindow = document.querySelector('.ai-assistant-window');
+    isAIChatOpen = !isAIChatOpen;
+    chatWindow.style.display = isAIChatOpen ? 'flex' : 'none';
+    
+    if (isAIChatOpen) {
+      document.getElementById('ai-input').focus();
+    }
+  }
+  
+  function handleAIKeyPress(event) {
+    if (event.key === 'Enter') {
+      sendAIMessage();
+    }
+  }
+  
+  function sendAIMessage() {
+    const input = document.getElementById('ai-input');
+    const message = input.value.trim();
+    
+    if (message === '') return;
+    
+    // Kullanıcı mesajını ekle
+    addMessage(message, 'user');
+    input.value = '';
+    
+    // Yapay zeka yanıtı için bekleme göster
+    showTypingIndicator();
+    
+    // Yapay zeka yanıtını simüle et (gerçek uygulamada API çağrısı yapılır)
+    setTimeout(() => {
+      hideTypingIndicator();
+      const aiResponse = generateAIResponse(message);
+      addMessage(aiResponse, 'bot');
+    }, 1000);
+  }
+  
+  function addMessage(text, sender) {
+    const messagesContainer = document.getElementById('ai-messages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${sender}-message`;
+    
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'message-content';
+    
+    const paragraph = document.createElement('p');
+    paragraph.textContent = text;
+    
+    contentDiv.appendChild(paragraph);
+    messageDiv.appendChild(contentDiv);
+    messagesContainer.appendChild(messageDiv);
+    
+    // Scroll to bottom
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  }
+  
+  function showTypingIndicator() {
+    const indicator = document.createElement('div');
+    indicator.className = 'typing-indicator';
+    indicator.id = 'typing-indicator';
+    indicator.textContent = 'Yanıt yazılıyor...';
+    document.getElementById('ai-messages').appendChild(indicator);
+    
+    // Scroll to bottom
+    const messagesContainer = document.getElementById('ai-messages');
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  }
+  
+  function hideTypingIndicator() {
+    const indicator = document.getElementById('typing-indicator');
+    if (indicator) {
+      indicator.remove();
+    }
+  }
+  
+  function generateAIResponse(userMessage) {
+    // Basit bir kural tabanlı yanıt sistemi
+    // Gerçek uygulamada burada bir AI API'si kullanılır
+    
+    const lowerMessage = userMessage.toLowerCase();
+    
+    // Sualp Kula hakkında sorular
+    if (lowerMessage.includes('sualp') || lowerMessage.includes('kula')) {
+      if (lowerMessage.includes('kim') || lowerMessage.includes('ne iş yapıyor')) {
+        return "Sualp Kula, yapay zeka ve web teknolojileri konusunda uzmanlaşmış bir geliştiricidir. Öğrencilere yardımcı olmak için bu platformu oluşturmuştur.";
+      } else if (lowerMessage.includes('iletişim') || lowerMessage.includes('nasıl ulaşırım')) {
+        return "Sualp Kula'ya sualpkula@gmail.com adresinden ulaşabilirsiniz.";
+      } else {
+        return "Sualp Kula hakkında daha fazla bilgi almak için 'Sualp Kula kimdir?' şeklinde sorabilirsiniz.";
+      }
+    }
+    
+    // Ders notları hakkında sorular
+    if (lowerMessage.includes('ders') || lowerMessage.includes('not')) {
+      return "Ders notlarına ana menüdeki 'Ders Notları' butonundan ulaşabilirsiniz. Belirli bir dersle ilgili sorunuz varsa yardımcı olabilirim.";
+    }
+    
+    // Selamlaşma
+    if (lowerMessage.includes('merhaba') || lowerMessage.includes('selam') || lowerMessage.includes('hey')) {
+      return "Merhaba! Size nasıl yardımcı olabilirim?";
+    }
+    
+    // Teşekkür
+    if (lowerMessage.includes('teşekkür') || lowerMessage.includes('sağ ol')) {
+      return "Rica ederim! Başka bir konuda yardımcı olabilirim.";
+    }
+    
+    // Genel yanıt
+    return "Anladım. Sualp Kula ve çalışmaları hakkında daha fazla bilgi verebilirim veya ders notları konusunda yardımcı olabilirim. Daha spesifik bir soru sorarsanız daha iyi yardımcı olabilirim.";
+  }
+</script>
 
 </body>
 </html>
+
