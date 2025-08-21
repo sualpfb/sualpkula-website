@@ -304,7 +304,8 @@
       }
     });
   </script>
-  <!-- Yapay Zeka Asistanı Widget'ı -->
+
+<!-- Yapay Zeka Asistanı Widget'ı -->
 <div class="ai-assistant">
   <div class="ai-assistant-button" onclick="toggleAIChat()">
     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -319,7 +320,7 @@
     <div class="ai-assistant-messages" id="ai-messages">
       <div class="message bot-message">
         <div class="message-content">
-          <p>Selamlar! Ben Sualp Kula'nın yapay zeka asistanıyım. Size Sualp Kula hakkında bilgi verebilir, ders notları konusunda yardımcı olabilir veya genel sorularınızı yanıtlayabilirim. Nasıl yardımcı olabilirim?</p>
+          <p>Selamlar! Ben Sualp Kula'nın yapay zeka asistanıyım. Size Sualp Kula hakkında bilgi verebilir, ders notları konusunda yardımcı olabilir veya her türlü sorunuzu yanıtlayabilirim. Nasıl yardımcı olabilirim?</p>
         </div>
       </div>
     </div>
@@ -484,7 +485,12 @@
 </style>
 
 <script>
-  // Basit Yapay Zeka Asistanı İşlevselliği
+  // OpenAI API entegrasyonu için gerekli kod
+  const OPENAI_API_KEY = "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"; // OpenAI API anahtarı
+  const conversationHistory = [
+    { role: "system", content: "Sen Sualp Kula'nın yapay zeka asistanısın. Sualp Kula hakkında bilgiler verebilirsin. Ayrıca kullanıcılara ders notları ve diğer konularda yardımcı olabilirsin. Selamlar ben Sualp Kula'nın yapay zeka asistanıyım diyerek kendini tanıt. Türkçe yanıt ver." }
+  ];
+
   let isAIChatOpen = false;
   
   function toggleAIChat() {
@@ -503,7 +509,7 @@
     }
   }
   
-  function sendAIMessage() {
+  async function sendAIMessage() {
     const input = document.getElementById('ai-input');
     const message = input.value.trim();
     
@@ -511,17 +517,52 @@
     
     // Kullanıcı mesajını ekle
     addMessage(message, 'user');
+    conversationHistory.push({ role: "user", content: message });
     input.value = '';
     
     // Yapay zeka yanıtı için bekleme göster
     showTypingIndicator();
     
-    // Yapay zeka yanıtını simüle et (gerçek uygulamada API çağrısı yapılır)
-    setTimeout(() => {
+    try {
+      // OpenAI API'sine istek gönder
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENAI_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: "gpt-3.5-turbo",
+          messages: conversationHistory,
+          max_tokens: 500,
+          temperature: 0.7
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error.message);
+      }
+      
+      const aiResponse = data.choices[0].message.content;
+      
+      // AI yanıtını sohbete ekle
       hideTypingIndicator();
-      const aiResponse = generateAIResponse(message);
       addMessage(aiResponse, 'bot');
-    }, 1000);
+      conversationHistory.push({ role: "assistant", content: aiResponse });
+      
+    } catch (error) {
+      console.error("AI hatası:", error);
+      hideTypingIndicator();
+      
+      // API hatası durumunda fallback yanıt
+      addMessage("Üzgünüm, şu anda teknik bir sorun yaşıyorum. Lütfen daha sonra tekrar deneyin.", 'bot');
+      
+      // Alternatif olarak basit yanıt sistemi kullan
+      // const fallbackResponse = generateFallbackResponse(message);
+      // addMessage(fallbackResponse, 'bot');
+    }
   }
   
   function addMessage(text, sender) {
@@ -562,13 +603,10 @@
     }
   }
   
-  function generateAIResponse(userMessage) {
-    // Basit bir kural tabanlı yanıt sistemi
-    // Gerçek uygulamada burada bir AI API'si kullanılır
-    
+  // OpenAI API'si çalışmazsa kullanılacak yedek yanıt sistemi
+  function generateFallbackResponse(userMessage) {
     const lowerMessage = userMessage.toLowerCase();
     
-    // Sualp Kula hakkında sorular
     if (lowerMessage.includes('sualp') || lowerMessage.includes('kula')) {
       if (lowerMessage.includes('kim') || lowerMessage.includes('ne iş yapıyor')) {
         return "Sualp Kula, yapay zeka ve web teknolojileri konusunda uzmanlaşmış bir geliştiricidir. Öğrencilere yardımcı olmak için bu platformu oluşturmuştur.";
@@ -579,26 +617,23 @@
       }
     }
     
-    // Ders notları hakkında sorular
     if (lowerMessage.includes('ders') || lowerMessage.includes('not')) {
       return "Ders notlarına ana menüdeki 'Ders Notları' butonundan ulaşabilirsiniz. Belirli bir dersle ilgili sorunuz varsa yardımcı olabilirim.";
     }
     
-    // Selamlaşma
     if (lowerMessage.includes('merhaba') || lowerMessage.includes('selam') || lowerMessage.includes('hey')) {
-      return "Merhaba! Size nasıl yardımcı olabilirim?";
+      return "Merhaba! Ben Sualp Kula'nın yapay zeka asistanıyım. Size nasıl yardımcı olabilirim?";
     }
     
-    // Teşekkür
     if (lowerMessage.includes('teşekkür') || lowerMessage.includes('sağ ol')) {
       return "Rica ederim! Başka bir konuda yardımcı olabilirim.";
     }
     
-    // Genel yanıt
-    return "Anladım. Sualp Kula ve çalışmaları hakkında daha fazla bilgi verebilirim veya ders notları konusunda yardımcı olabilirim. Daha spesifik bir soru sorarsanız daha iyi yardımcı olabilirim.";
+    return "Üzgünüm, bu konuda yeterli bilgiye sahip değilim. Lütfen Sualp Kula veya ders notları hakkında soru sorun.";
   }
 </script>
-
+  
 </body>
 </html>
+
 
