@@ -1,19 +1,32 @@
-# PDF koruma
-<FilesMatch "\.pdf$">
-    # Sadece belirli referer'dan erişime izin ver
-    RewriteEngine On
-    RewriteCond %{HTTP_REFERER} !^https://(www\.)?siteniz\.com/ [NC]
-    RewriteRule \.pdf$ - [F,NC,L]
-    
-    # Önbellekleme önleme
-    Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
-    Header set Pragma "no-cache"
-    Header set Expires 0
-</FilesMatch>
+# uploads/.htaccess - Bu dosya uploads klasörünün içine konulmalı
 
-# Uploads klasörüne erişim güvenliği
-<Directory "/uploads">
-    Options -Indexes
+# Apache 2.4+ için
+<RequireAll>
+    Require all denied
+    Require ip 127.0.0.1
+    Require ip ::1
+</RequireAll>
+
+# Apache 2.2 için yedek
+<IfModule !mod_authz_core.c>
+    Order deny,allow
     Deny from all
     Allow from 127.0.0.1
-</Directory>
+</IfModule>
+
+# Directory listelemeyi engelle
+Options -Indexes
+
+# PDF'lere doğrudan erişimi engelle
+<FilesMatch "\.pdf$">
+    # Sadece PHP scriptinden erişime izin ver
+    RewriteEngine On
+    RewriteCond %{HTTP_REFERER} !^https?://(www\.)?[^/]+/view-pdf\.php [NC]
+    RewriteCond %{REQUEST_URI} !^/view-pdf\.php
+    RewriteRule \.pdf$ - [F,L]
+    
+    # Önbellekleme kontrolü
+    Header always set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+    Header always set Pragma "no-cache"
+    Header always set Expires "0"
+</FilesMatch>
