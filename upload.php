@@ -4,46 +4,185 @@ header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST');
 header('Access-Control-Allow-Headers: Content-Type');
 
-// Basit güvenlik kontrolü
-$expected_token = "GUVENLIK_TOKENI_12345";
+// Hata raporlamayı aç (geliştirme için)
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    echo json_encode(['error' => 'Sadece POST isteği kabul edilir']);
-    exit;
+// Güvenlik tokeni
+define('UPLOAD_TOKEN', 'GUVENLIK_TOKENI_12345');
+
+// Admin email listesi
+$ADMIN_EMAILS = [
+    "sualpkula@gmail.com",
+    "sualpkula81@gmail.com"
+];
+
+// Maximum dosya boyutu (100MB)
+define('MAX_FILE_SIZE', 100 * 1024 * 1024);
+
+try {
+    // POST kontrolü
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        throw new Exception('Sadece POST istekleri kabul edilir');
+    }
+
+    $action = $_POST['action'] ?? 'upload';
+    
+    if ($action === 'delete') {
+        handleDeleteRequest();
+    } else {
+        handleUploadRequest();
+    }
+
+} catch (Exception $e) {
+    http_response_code(400);
+    echo json_encode([
+        'success' => false,
+        'error' => $e->getMessage(),
+        'debug' => [
+            'post_data' => $_POST,
+            'files_data' => $_FILES,
+            'server_info' => [
+                'upload_max_filesize' => ini_get('upload_max_filesize'),
+                'post_max_size' => ini_get('post_max_size'),
+                'max_execution_time' => ini_get('max_execution_time')
+            ]
+        ]
+    ]);
 }
 
-// Token kontrolü (basit)
-if (!isset($_POST['token']) || $_POST['token'] !== $expected_token) {
-    echo json_encode(['error' => 'Geçersiz güvenlik tokenı']);
-    exit;
-}
+function handleUploadRequest() {
+    global $ADMIN_EMAILS;
+    
+    // Token kontrolü
+    $token = $_POST['token'] ?? '';
+    if ($token !== UPLOAD_TOKEN) {
+        throw new Exception('Geçersiz güvenlik tokeni');
+    }
 
-// Dosya kontrolü
-if (!isset($_FILES['pdf_file']) || $_FILES['pdf_file']['error'] !== UPLOAD_ERR_OK) {
-    echo json_encode(['error' => 'Dosya seçilmedi veya hata oluştu']);
-    exit;
-}
+    // Form verilerini al
+    $title = trim($_POST['title'] ?? '');
+    $category = trim($_POST['category'] ?? '');
+    $description = trim($_POST['description'] ?? '');
+    $visibility = trim($_POST['visibility'] ?? '');
 
-// Klasör yoksa oluştur
-$upload_dir = 'uploads/pdfs/';
-if (!file_exists($upload_dir)) {
-    mkdir($upload_dir, 0777, true);
-}
+    // Validasyon
+    if (empty($title) || empty($category) || empty($visibility)) {
+        throw new Exception('Başlık, kategori ve görünürlük alanları zorunludur');
+    }
 
-// Benzersiz dosya adı
-$original_name = $_FILES['pdf_file']['name'];
-$file_name = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $original_name);
-$file_path = $upload_dir . $file_name;
+    // Dosya kontrolü
+    if (!isset($_FILES['pdf_file']) || $_FILES['pdf_file']['error'] !== UPLOAD_ERR_OK) {
+        $errorMsg = 'Dosya yükleme hatası: ';
+        switch ($_FILES['pdf_file']['error']) {
+            case UPLOAD_ERR_INI_SIZE:
+            case UPLOAD_ERR_FORM_SIZE:
+                $errorMsg .= 'Dosya boyutu çok büyük';
+                break;
+            case UPLOAD_ERR_PARTIAL:
+                $errorMsg .= 'Dosya kısmen yüklendi';
+                break;
+            case UPLOAD_ERR_NO_FILE:
+                $errorMsg .= 'Dosya seçilmedi';
+                break;
+            default:
+                $errorMsg .= 'Bilinmeyen hata (' . $_FILES['pdf_file']['error'] . ')';
+        }
+        throw new Exception($errorMsg);
+    }
 
-// Dosyayı yükle
-if (move_uploaded_file($_FILES['pdf_file']['tmp_name'], $file_path)) {
+    $file = $_FILES['pdf_file'];
+    
+    // Dosya boyutu kontrolü
+    if ($file['size'] > MAX_FILE_SIZE) {
+        throw new Exception('Dosya boyutu 100MB\'dan büyük olamaz. Mevcut boyut: ' . round($file['size']/(1024*1024), 2) . 'MB');
+    }
+
+    // MIME type kontrolü
+    $allowedTypes = ['application/pdf'];
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $mimeType = finfo_file($finfo, $file['tmp_name']);
+    finfo_close($finfo);
+    
+    if (!in_array($mimeType, $allowedTypes)) {
+        throw new Exception('Sadece PDF dosyaları kabul edilir. Algılanan tip: ' . $mimeType);
+    }
+
+    // Dosya uzantısı kontrolü
+    $fileExtension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    if ($fileExtension !== 'pdf') {
+        throw new Exception('Dosya uzantısı .pdf olmalıdır');
+    }
+
+    // Upload klasörünü oluştur
+    $uploadDir = 'uploads/pdfs/';
+    if (!is_dir($uploadDir)) {
+        if (!mkdir($uploadDir, 0755, true)) {
+            throw new Exception('Upload klasörü oluşturulamadı');
+        }
+    }
+
+    // Benzersiz dosya adı oluştur
+    $originalName = $file['name'];
+    $fileName = time() . '_' . uniqid() . '.pdf';
+    $filePath = $uploadDir . $fileName;
+
+    // Dosyayı taşı
+    if (!move_uploaded_file($file['tmp_name'], $filePath)) {
+        throw new Exception('Dosya sunucuya yüklenemedi');
+    }
+
+    // Dosya izinlerini ayarla (güvenlik için)
+    chmod($filePath, 0644);
+
+    // Başarılı yanıt
     echo json_encode([
         'success' => true,
-        'file_path' => $file_path,
-        'file_name' => $file_name,
-        'original_name' => $original_name
+        'message' => 'PDF başarıyla yüklendi',
+        'data' => [
+            'file_name' => $fileName,
+            'file_path' => $filePath,
+            'original_name' => $originalName,
+            'file_size' => $file['size'],
+            'upload_date' => date('Y-m-d H:i:s')
+        ]
     ]);
-} else {
-    echo json_encode(['error' => 'Dosya yüklenemedi']);
+}
+
+function handleDeleteRequest() {
+    // Token kontrolü
+    $token = $_POST['token'] ?? '';
+    if ($token !== UPLOAD_TOKEN) {
+        throw new Exception('Geçersiz güvenlik tokeni');
+    }
+
+    $filePath = $_POST['file_path'] ?? '';
+    
+    if (empty($filePath)) {
+        throw new Exception('Silinecek dosya yolu belirtilmedi');
+    }
+
+    // Güvenlik kontrolü - sadece uploads klasörü içindeki dosyalar
+    if (strpos($filePath, 'uploads/pdfs/') !== 0) {
+        throw new Exception('Geçersiz dosya yolu');
+    }
+
+    // Dosya mevcutsa sil
+    if (file_exists($filePath)) {
+        if (unlink($filePath)) {
+            echo json_encode([
+                'success' => true,
+                'message' => 'Dosya başarıyla silindi'
+            ]);
+        } else {
+            throw new Exception('Dosya silinemedi');
+        }
+    } else {
+        // Dosya zaten yoksa, hata vermek yerine başarılı kabul et
+        echo json_encode([
+            'success' => true,
+            'message' => 'Dosya zaten mevcut değil'
+        ]);
+    }
 }
 ?>
