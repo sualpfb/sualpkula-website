@@ -1,0 +1,19 @@
+# PDF koruma
+<FilesMatch "\.pdf$">
+    # Sadece belirli referer'dan erişime izin ver
+    RewriteEngine On
+    RewriteCond %{HTTP_REFERER} !^https://(www\.)?siteniz\.com/ [NC]
+    RewriteRule \.pdf$ - [F,NC,L]
+    
+    # Önbellekleme önleme
+    Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+    Header set Pragma "no-cache"
+    Header set Expires 0
+</FilesMatch>
+
+# Uploads klasörüne erişim güvenliği
+<Directory "/uploads">
+    Options -Indexes
+    Deny from all
+    Allow from 127.0.0.1
+</Directory>
