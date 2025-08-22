@@ -29,8 +29,12 @@
 
     <!-- PDF Yükleme Bölümü -->
     <div class="admin-section">
-      <h3>📄 PDF Yükleme</h3>
+      <h3>📄 PDF Yükleme (Yerel Sunucu)</h3>
+      <p style="font-size: 12px; color: #666; margin-bottom: 15px;">Dosyalar kendi sunucunuza yüklenecek (100MB limit)</p>
+      
       <form class="upload-form" id="pdf-upload-form">
+        <input type="hidden" id="upload-token" value="GUVENLIK_TOKENI_12345">
+        
         <input type="text" id="pdf-title" placeholder="PDF Başlığı (örn: Lineer Cebir Final)" required>
         
         <select id="pdf-category" required>
@@ -52,7 +56,7 @@
         <input type="file" id="pdf-file" accept=".pdf" required>
         
         <button type="submit" class="upload-btn">
-          <span id="upload-text">📤 PDF Yükle</span>
+          <span id="upload-text">📤 PDF Yükle (Yerel Sunucu)</span>
           <div id="upload-loading" class="loading-spinner" style="display: none; width: 20px; height: 20px; margin: 0 auto;"></div>
         </button>
       </form>
@@ -148,7 +152,7 @@
       window.location.href = "index.html";
     }
 
-    // PDF Yükleme
+    // PDF Yükleme - YENİ YEREL YÜKLEME SİSTEMİ
     document.getElementById("pdf-upload-form").addEventListener("submit", async function(e) {
       e.preventDefault();
       
@@ -158,6 +162,7 @@
       const visibility = document.getElementById("pdf-visibility").value;
       const fileInput = document.getElementById("pdf-file");
       const file = fileInput.files[0];
+      const token = document.getElementById("upload-token").value;
 
       if (!file) {
         alert("Lütfen bir PDF dosyası seçin.");
@@ -169,17 +174,28 @@
       document.getElementById("upload-loading").style.display = "block";
 
       try {
-        // Dosya adını benzersiz yap
-        const fileName = `${Date.now()}_${file.name}`;
-        
-        // Supabase Storage'a yükle
-        const { data: storageData, error: storageError } = await supabase.storage
-          .from('pdfs')
-          .upload(fileName, file);
+        // FormData oluştur
+        const formData = new FormData();
+        formData.append('pdf_file', file);
+        formData.append('title', title);
+        formData.append('category', category);
+        formData.append('description', description);
+        formData.append('visibility', visibility);
+        formData.append('token', token);
 
-        if (storageError) throw storageError;
+        // PHP'ye yükle (YEREL SUNUCU)
+        const response = await fetch('upload.php', {
+          method: 'POST',
+          body: formData
+        });
 
-        // Database'e kaydet
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Yükleme hatası');
+        }
+
+        // Database'e bilgileri kaydet (Supabase)
         const { data: dbData, error: dbError } = await supabase
           .from('pdf_files')
           .insert([
@@ -188,10 +204,12 @@
               category: category,
               description: description,
               visibility: visibility,
-              file_path: storageData.path,
-              file_name: fileName,
+              file_path: result.file_path, // Yerel yol
+              file_name: result.file_name,
+              original_name: result.original_name,
               uploaded_by: currentUser.email,
-              upload_date: new Date().toISOString()
+              upload_date: new Date().toISOString(),
+              storage_type: 'local' // Yeni alan: dosyanın nerede saklandığı
             }
           ]);
 
@@ -238,12 +256,12 @@
             <div class="pdf-info">
               <h4>${pdf.title}</h4>
               <p><strong>Kategori:</strong> ${pdf.category} | <strong>Görünürlük:</strong> ${pdf.visibility}</p>
-              <p><strong>Yüklenme:</strong> ${new Date(pdf.upload_date).toLocaleDateString('tr-TR')}</p>
+              <p><strong>Depolama:</strong> ${pdf.storage_type || 'supabase'} | <strong>Yüklenme:</strong> ${new Date(pdf.upload_date).toLocaleDateString('tr-TR')}</p>
               ${pdf.description ? `<p><em>${pdf.description}</em></p>` : ''}
             </div>
             <div class="pdf-actions">
               <button class="btn-edit" onclick="editPDF(${pdf.id})">Düzenle</button>
-              <button class="btn-delete" onclick="deletePDF(${pdf.id}, '${pdf.file_path}')">Sil</button>
+              <button class="btn-delete" onclick="deletePDF(${pdf.id}, '${pdf.file_path}', '${pdf.storage_type}')">Sil</button>
             </div>
           </div>
         `).join('');
@@ -283,15 +301,38 @@
       }
     }
 
-    // PDF silme
-    async function deletePDF(pdfId, filePath) {
+    // PDF silme - YENİ: Yerel dosyaları da sil
+    async function deletePDF(pdfId, filePath, storageType) {
       if (!confirm("Bu PDF'i silmek istediğinize emin misiniz?")) return;
 
       try {
-        // Storage'dan sil
-        const { error: storageError } = await supabase.storage
-          .from('pdfs')
-          .remove([filePath]);
+        // Yerel depolamadan silme
+        if (storageType === 'local') {
+          // PHP ile dosyayı sil
+          const formData = new FormData();
+          formData.append('file_path', filePath);
+          formData.append('token', document.getElementById("upload-token").value);
+          formData.append('action', 'delete');
+          
+          const response = await fetch('upload.php', {
+            method: 'POST',
+            body: formData
+          });
+          
+          const result = await response.json();
+          if (!response.ok) {
+            console.warn("Dosya silinemedi:", result.error);
+          }
+        } else {
+          // Supabase storage'dan sil
+          const { error: storageError } = await supabase.storage
+            .from('pdfs')
+            .remove([filePath]);
+
+          if (storageError) {
+            console.warn("Supabase dosya silme hatası:", storageError);
+          }
+        }
 
         // Database'den sil
         const { error: dbError } = await supabase
