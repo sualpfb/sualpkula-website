@@ -169,6 +169,12 @@
         return;
       }
 
+      // Dosya boyutu kontrolü (100MB)
+      if (file.size > 100 * 1024 * 1024) {
+        alert("Dosya boyutu 100MB'dan büyük olamaz. Mevcut boyut: " + Math.round(file.size/(1024*1024)) + "MB");
+        return;
+      }
+
       // Loading göster
       document.getElementById("upload-text").style.display = "none";
       document.getElementById("upload-loading").style.display = "block";
@@ -183,19 +189,38 @@
         formData.append('visibility', visibility);
         formData.append('token', token);
 
-        // PHP'ye yükle (YEREL SUNUCU)
+        console.log("Yükleme başlatılıyor...", {
+          fileName: file.name,
+          fileSize: file.size,
+          title: title
+        });
+
+        // PHP'ye yükle
         const response = await fetch('upload.php', {
           method: 'POST',
           body: formData
         });
 
-        const result = await response.json();
+        console.log("Sunucu yanıtı:", response.status, response.statusText);
 
-        if (!response.ok) {
-          throw new Error(result.error || 'Yükleme hatası');
+        const responseText = await response.text();
+        console.log("Sunucu yanıt içeriği:", responseText);
+
+        let result;
+        try {
+          result = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error("JSON parse hatası:", parseError);
+          throw new Error("Sunucudan geçersiz yanıt: " + responseText.substring(0, 200));
         }
 
-        // Database'e bilgileri kaydet (Supabase)
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || 'Yükleme hatası: ' + response.status);
+        }
+
+        console.log("Yükleme başarılı:", result);
+
+        // Database'e bilgileri kaydet
         const { data: dbData, error: dbError } = await supabase
           .from('pdf_files')
           .insert([
@@ -204,29 +229,32 @@
               category: category,
               description: description,
               visibility: visibility,
-              file_path: result.file_path, // Yerel yol
-              file_name: result.file_name,
-              original_name: result.original_name,
+              file_path: result.data.file_path,
+              file_name: result.data.file_name,
+              original_name: result.data.original_name,
               uploaded_by: currentUser.email,
               upload_date: new Date().toISOString(),
-              storage_type: 'local' // Yeni alan: dosyanın nerede saklandığı
+              storage_type: 'local'
             }
           ]);
 
-        if (dbError) throw dbError;
+        if (dbError) {
+          console.error("Database hatası:", dbError);
+          throw new Error("Database kayıt hatası: " + dbError.message);
+        }
 
         alert("PDF başarıyla yüklendi!");
         
         // Formu temizle
         document.getElementById("pdf-upload-form").reset();
         
-        // PDF listesini yenile
+        // Listeleri yenile
         await loadPDFs();
         await loadStats();
 
       } catch (error) {
         console.error("PDF yükleme hatası:", error);
-        alert("PDF yüklenirken hata oluştu: " + error.message);
+        alert("PDF yüklenirken hata oluştu:\n\n" + error.message);
       } finally {
         // Loading gizle
         document.getElementById("upload-text").style.display = "block";
@@ -261,7 +289,7 @@
             </div>
             <div class="pdf-actions">
               <button class="btn-edit" onclick="editPDF(${pdf.id})">Düzenle</button>
-              <button class="btn-delete" onclick="deletePDF(${pdf.id}, '${pdf.file_path}', '${pdf.storage_type}')">Sil</button>
+              <button class="btn-delete" onclick="deletePDF(${pdf.id}, '${pdf.file_path}', '${pdf.storage_type || 'supabase'}')">Sil</button>
             </div>
           </div>
         `).join('');
@@ -308,7 +336,6 @@
       try {
         // Yerel depolamadan silme
         if (storageType === 'local') {
-          // PHP ile dosyayı sil
           const formData = new FormData();
           formData.append('file_path', filePath);
           formData.append('token', document.getElementById("upload-token").value);
@@ -319,8 +346,8 @@
             body: formData
           });
           
-          const result = await response.json();
           if (!response.ok) {
+            const result = await response.json();
             console.warn("Dosya silinemedi:", result.error);
           }
         } else {
