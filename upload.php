@@ -66,4 +66,30 @@ if (move_uploaded_file($_FILES['pdf_file']['tmp_name'], $file_path)) {
     http_response_code(500);
     echo json_encode(['error' => 'Dosya yüklenirken hata oluştu']);
 }
+// Dosya silme işlemi
+if (isset($_POST['action']) && $_POST['action'] === 'delete' && isset($_POST['file_path'])) {
+    if (!isset($_POST['token']) || $_POST['token'] !== $expected_token) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Geçersiz güvenlik tokenı']);
+        exit;
+    }
+    
+    $file_path = $_POST['file_path'];
+    
+    // Güvenlik kontrolü - sadece uploads klasöründeki dosyalar silinebilir
+    if (strpos($file_path, 'uploads/') !== 0 || !file_exists($file_path)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Geçersiz dosya yolu']);
+        exit;
+    }
+    
+    if (unlink($file_path)) {
+        echo json_encode(['success' => true, 'message' => 'Dosya silindi']);
+    } else {
+        http_response_code(500);
+        echo json_encode(['error' => 'Dosya silinirken hata oluştu']);
+    }
+    exit;
+}
 ?>
+
