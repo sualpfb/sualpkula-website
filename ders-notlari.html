@@ -452,26 +452,35 @@
       return new Date(dateString).toLocaleDateString('tr-TR');
     }
 
-    // PDF görüntüle - Geliştirilmiş mobil uyumlu
-    async function viewPDF(filePath, title, pdfId) {
-      try {
-        // Görüntüleme sayısını artır
-        await incrementViewCount(pdfId);
-        
-        const { data, error } = await supabase.storage
-          .from('pdfs')
-          .createSignedUrl(filePath, 3600);
+    // PDF görüntüle - Yerel ve Supabase dosyaları için
+async function viewPDF(filePath, title, pdfId, storageType) {
+  try {
+    // Görüntüleme sayısını artır
+    await incrementViewCount(pdfId);
+    
+    let pdfUrl;
+    
+    if (storageType === 'local') {
+      // Yerel dosya - doğrudan yol
+      pdfUrl = filePath;
+    } else {
+      // Supabase dosyası - signed URL al
+      const { data, error } = await supabase.storage
+        .from('pdfs')
+        .createSignedUrl(filePath, 3600);
 
-        if (error) throw error;
-
-        // PDF modal aç
-        openPDFModal(data.signedUrl, title);
-        
-      } catch (error) {
-        console.error("PDF görüntüleme hatası:", error);
-        alert("PDF görüntülenirken hata oluştu: " + error.message);
-      }
+      if (error) throw error;
+      pdfUrl = data.signedUrl;
     }
+
+    // PDF modal aç
+    openPDFModal(pdfUrl, title);
+    
+  } catch (error) {
+    console.error("PDF görüntüleme hatası:", error);
+    alert("PDF görüntülenirken hata oluştu: " + error.message);
+  }
+}
 
     // Geliştirilmiş PDF Modal
     function openPDFModal(pdfUrl, title) {
@@ -604,3 +613,4 @@
 
 </body>
 </html>
+
