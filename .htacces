@@ -1,0 +1,27 @@
+# uploads/.htaccess - Bu dosya uploads klasörünün içine konulmalı
+
+# Directory listelemeyi engelle
+Options -Indexes
+
+# Tüm dosyalara erişimi engelle
+Order deny,allow
+Deny from all
+
+# Sadece view-pdf.php'den erişime izin ver
+<FilesMatch "\.(pdf)$">
+    # PHP scriptinden erişime izin ver
+    SetEnvIfNoCase Referer "^https?://(www\.)?sualpkula\.com/view-pdf\.php" allowed_referer
+    
+    Order deny,allow
+    Deny from all
+    Allow from env=allowed_referer
+    Allow from 127.0.0.1
+    Allow from ::1
+</FilesMatch>
+
+# Önbellekleme kontrolü
+<FilesMatch "\.pdf$">
+    Header always set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+    Header always set Pragma "no-cache"
+    Header always set Expires "0"
+</FilesMatch>
