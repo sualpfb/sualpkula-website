@@ -1,4 +1,4 @@
-# Ana .htaccess dosyası
+# Ana .htaccess dosyası - Düzeltilmiş
 RewriteEngine On
 
 # CORS başlıklarını etkinleştir
@@ -7,9 +7,17 @@ Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
 Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
 Header always set Access-Control-Allow-Credentials "true"
 
-# Preflight istekleri için
+# Preflight OPTIONS istekleri için
 RewriteCond %{REQUEST_METHOD} OPTIONS
 RewriteRule ^(.*)$ $1 [R=200,L]
+
+# PHP dosyalarına POST isteklerine izin ver
+<FilesMatch "\.php$">
+    <Limit GET POST OPTIONS>
+        Order allow,deny
+        Allow from all
+    </Limit>
+</FilesMatch>
 
 # PHP upload limitlerini artır
 <IfModule mod_php.c>
@@ -36,7 +44,8 @@ RewriteRule ^(.*)$ $1 [R=200,L]
     php_value memory_limit 256M
 </IfModule>
 
-# URL rewrite kuralları
+# URL rewrite kuralları - sadece var olmayan dosyalar için
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} !\.(php|css|js|png|jpg|gif|pdf)$
 RewriteRule . index.html [L]
