@@ -1,27 +1,19 @@
-# uploads/.htaccess - Bu dosya uploads klasörünün içine konulmalı
+# Ana .htaccess dosyası
+RewriteEngine On
 
-# Directory listelemeyi engelle
-Options -Indexes
+# CORS başlıklarını etkinleştir
+Header always set Access-Control-Allow-Origin "*"
+Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS"
+Header always set Access-Control-Allow-Headers "Content-Type"
 
-# Tüm dosyalara erişimi engelle
-Order deny,allow
-Deny from all
+# Preflight istekleri için
+RewriteCond %{REQUEST_METHOD} OPTIONS
+RewriteRule ^(.*)$ $1 [R=200,L]
 
-# Sadece view-pdf.php'den erişime izin ver
-<FilesMatch "\.(pdf)$">
-    # PHP scriptinden erişime izin ver
-    SetEnvIfNoCase Referer "^https?://(www\.)?sualpkula\.com/view-pdf\.php" allowed_referer
-    
-    Order deny,allow
-    Deny from all
-    Allow from env=allowed_referer
-    Allow from 127.0.0.1
-    Allow from ::1
-</FilesMatch>
-
-# Önbellekleme kontrolü
-<FilesMatch "\.pdf$">
-    Header always set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
-    Header always set Pragma "no-cache"
-    Header always set Expires "0"
-</FilesMatch>
+# PHP upload limitlerini artır
+<IfModule mod_php7.c>
+    php_value upload_max_filesize 100M
+    php_value post_max_size 100M
+    php_value max_execution_time 300
+    php_value max_input_time 300
+</IfModule>
