@@ -399,6 +399,14 @@
         window.location.href = "index.html";
       }
     }
+    // PHP'ye yükle
+const response = await fetch('upload.php', {
+  method: 'POST',
+  body: formData,
+  headers: {
+    'Accept': 'application/json',
+  }
+});
   </script>
 </body>
 </html>
