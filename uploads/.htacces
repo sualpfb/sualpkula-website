@@ -1,42 +1,43 @@
-# uploads/.htaccess - Bu dosya uploads klasörünün içine konulmalı
+# uploads/.htaccess - Düzeltilmiş
+RewriteEngine On
 
 # Directory listelemeyi engelle
 Options -Indexes
 
-# Tüm HTTP metodlarına izin ver
-<LimitExcept GET POST OPTIONS>
-    Deny from all
-</LimitExcept>
+# Tüm HTTP metodlarına izin ver - kısıtlamayı kaldır
+<Files *>
+    Order allow,deny
+    Allow from all
+</Files>
 
 # CORS başlıklarını etkinleştir
 Header always set Access-Control-Allow-Origin "*"
 Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS"
-Header always set Access-Control-Allow-Headers "Content-Type"
+Header always set Access-Control-Allow-Headers "Content-Type, Authorization"
 
 # Preflight istekleri için
 RewriteCond %{REQUEST_METHOD} OPTIONS
 RewriteRule ^(.*)$ $1 [R=200,L]
 
-# PDF dosyalarına erişim kuralları
-<FilesMatch "\.(pdf)$">
-    # PHP scriptinden erişime izin ver
-    SetEnvIfNoCase Referer "^https?://(www\.)?sualpkula\.com/" allowed_referer
-    
-    Order deny,allow
-    Deny from all
-    Allow from env=allowed_referer
-    Allow from 127.0.0.1
-    Allow from ::1
-    
-    # POST isteklerine izin ver
-    <Limit POST>
-        Allow from all
-    </Limit>
-</FilesMatch>
-
-# Önbellekleme kontrolü
+# PDF dosyalarına özel güvenlik - ama POST'u engellemeyecek şekilde
 <FilesMatch "\.pdf$">
+    # Güvenlik başlıkları
+    Header always set X-Content-Type-Options nosniff
+    Header always set X-Frame-Options DENY
+    Header always set X-XSS-Protection "1; mode=block"
+    
+    # Önbellekleme kontrolü
     Header always set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
     Header always set Pragma "no-cache"
     Header always set Expires "0"
+    
+    # Erişim izinleri - kısıtlamayı gevşet
+    Order allow,deny
+    Allow from all
+</FilesMatch>
+
+# PHP dosyalarına tam erişim
+<FilesMatch "\.php$">
+    Order allow,deny
+    Allow from all
 </FilesMatch>
