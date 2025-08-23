@@ -2,8 +2,9 @@
 // Güvenli PDF görüntüleme scripti
 session_start();
 
-// Supabase bağlantısı (isteğe bağlı, kullanıcı kontrolü için)
-// Bu kısımda normalde kullanıcının giriş yapıp yapmadığını kontrol edersiniz
+// Hata raporlamayı kapat (production için)
+error_reporting(0);
+ini_set('display_errors', 0);
 
 try {
     // PDF dosya yolunu al
@@ -38,18 +39,16 @@ try {
     header('Cache-Control: private, max-age=0, no-cache, no-store, must-revalidate');
     header('Pragma: no-cache');
     header('Expires: 0');
-    
-    // İndirmeyi engelle
-    header('Content-Disposition: inline');
-    
-    // Dosya boyutunu belirt
     header('Content-Length: ' . filesize($pdfPath));
     
     // Dosyayı çıktı olarak gönder
     readfile($pdfPath);
+    exit();
     
 } catch (Exception $e) {
     http_response_code(404);
-    echo "PDF görüntülenemiyor: " . $e->getMessage();
+    header('Content-Type: text/plain');
+    echo "PDF görüntülenemiyor: " . htmlspecialchars($e->getMessage());
+    exit();
 }
 ?>
