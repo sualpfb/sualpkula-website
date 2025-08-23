@@ -1,8 +1,9 @@
 <?php
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
+header('Access-Control-Allow-Methods: POST, GET, OPTIONS, DELETE');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+header('Access-Control-Max-Age: 86400');
 
 // Hata raporlamayı aç (geliştirme için)
 error_reporting(E_ALL);
@@ -18,6 +19,15 @@ define('MAX_FILE_SIZE', 100 * 1024 * 1024);
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit();
+}
+
+// JSON inputunu işle
+if ($_SERVER['CONTENT_TYPE'] === 'application/json') {
+    $json = file_get_contents('php://input');
+    $data = json_decode($json, true);
+    if ($data) {
+        $_POST = array_merge($_POST, $data);
+    }
 }
 
 try {
@@ -44,7 +54,12 @@ try {
     http_response_code(400);
     echo json_encode([
         'success' => false,
-        'error' => $e->getMessage()
+        'error' => $e->getMessage(),
+        'debug' => [
+            'method' => $_SERVER['REQUEST_METHOD'],
+            'post_data' => $_POST,
+            'files' => $_FILES
+        ]
     ]);
     exit();
 }
@@ -169,4 +184,3 @@ function handleDeleteRequest() {
         ]);
     }
 }
-?>
