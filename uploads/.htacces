@@ -3,20 +3,35 @@
 # Directory listelemeyi engelle
 Options -Indexes
 
-# Tüm dosyalara erişimi engelle
-Order deny,allow
-Deny from all
+# Tüm HTTP metodlarına izin ver
+<LimitExcept GET POST OPTIONS>
+    Deny from all
+</LimitExcept>
 
-# Sadece view-pdf.php'den erişime izin ver
+# CORS başlıklarını etkinleştir
+Header always set Access-Control-Allow-Origin "*"
+Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS"
+Header always set Access-Control-Allow-Headers "Content-Type"
+
+# Preflight istekleri için
+RewriteCond %{REQUEST_METHOD} OPTIONS
+RewriteRule ^(.*)$ $1 [R=200,L]
+
+# PDF dosyalarına erişim kuralları
 <FilesMatch "\.(pdf)$">
     # PHP scriptinden erişime izin ver
-    SetEnvIfNoCase Referer "^https?://(www\.)?sualpkula\.com/view-pdf\.php" allowed_referer
+    SetEnvIfNoCase Referer "^https?://(www\.)?sualpkula\.com/" allowed_referer
     
     Order deny,allow
     Deny from all
     Allow from env=allowed_referer
     Allow from 127.0.0.1
     Allow from ::1
+    
+    # POST isteklerine izin ver
+    <Limit POST>
+        Allow from all
+    </Limit>
 </FilesMatch>
 
 # Önbellekleme kontrolü
