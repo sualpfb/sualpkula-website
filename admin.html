@@ -12,7 +12,7 @@
   <div id="loading-screen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); display: flex; justify-content: center; align-items: center; z-index: 9999;">
     <div style="text-align: center;">
       <div class="loading-spinner"></div>
-      <p>Admin yetkisi kontrol ediliyor...</p>
+      <p id="loading-message">Admin yetkisi kontrol ediliyor...</p>
     </div>
   </div>
 
@@ -93,11 +93,40 @@
     </div>
   </div>
 
+  <!-- Debug Panel (geliştirme için) -->
+  <div id="debug-panel" style="position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 5px; font-size: 12px; max-width: 300px; z-index: 10000; display: none;">
+    <strong>🔍 Debug Bilgileri:</strong>
+    <div id="debug-content"></div>
+    <button onclick="document.getElementById('debug-panel').style.display='none'" style="margin-top: 5px; background: red; color: white; border: none; padding: 2px 5px; border-radius: 3px;">Kapat</button>
+  </div>
+
   <script>
+    // Debug modunu aç
+    let debugMode = true; // Sorun çözüldükten sonra false yapın
+    
+    function debugLog(message, data = null) {
+      if (debugMode) {
+        console.log("🔍 [DEBUG]", message, data || "");
+        
+        const debugPanel = document.getElementById("debug-panel");
+        const debugContent = document.getElementById("debug-content");
+        
+        debugPanel.style.display = "block";
+        debugContent.innerHTML += `<br>• ${message}` + (data ? `: ${JSON.stringify(data)}` : "");
+      }
+    }
+    
+    function updateLoadingMessage(message) {
+      document.getElementById("loading-message").textContent = message;
+    }
+
     // Supabase Configuration
     const SUPABASE_URL = "https://bvlyzxljieftbkzkdwzv.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2bHl6eGxqaWVmdGJremtkd3p2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4ODQxNTgsImV4cCI6MjA2NjQ2MDE1OH0.mJEavNb2WC_0pBpg8KJq0ABc2hquYTewoge38U5P7dw";
+    
+    debugLog("Supabase bağlantısı kuruluyor...");
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    debugLog("Supabase client oluşturuldu");
 
     // Admin Email Listesi
     const ADMIN_EMAILS = [
@@ -109,50 +138,100 @@
 
     // Sayfa yüklendiğinde admin kontrolü
     window.onload = async function() {
-      await checkAdminAccess();
+      debugLog("Sayfa yüklendi, admin kontrolü başlatılıyor");
+      updateLoadingMessage("Kullanıcı bilgileri alınıyor...");
+      
+      // Küçük bir gecikme ekleyelim
+      setTimeout(async () => {
+        await checkAdminAccess();
+      }, 1000);
     };
 
-    // Admin yetki kontrolü
+    // Admin yetki kontrolü - Gelişmiş debug ile
     async function checkAdminAccess() {
+      debugLog("🔍 Admin kontrolü başlatılıyor...");
+      updateLoadingMessage("Kimlik doğrulanıyor...");
+      
       try {
-        const { data: { user }, error } = await supabase.auth.getUser();
+        debugLog("📡 Supabase auth durumu kontrol ediliyor");
         
-        if (error || !user) {
+        // Önce session kontrol et
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        debugLog("Session durumu", { session: !!session, error: sessionError });
+        
+        if (sessionError) {
+          debugLog("❌ Session hatası", sessionError);
+          throw new Error("Session hatası: " + sessionError.message);
+        }
+        
+        updateLoadingMessage("Kullanıcı bilgisi alınıyor...");
+        
+        const { data: { user }, error } = await supabase.auth.getUser();
+        debugLog("👤 Kullanıcı verisi alındı", { user: !!user, email: user?.email, error });
+        
+        if (error) {
+          debugLog("🚨 Auth hatası", error);
+          throw new Error("Kimlik doğrulama hatası: " + error.message);
+        }
+        
+        if (!user) {
+          debugLog("🚫 Kullanıcı bulunamadı");
           redirectToLogin("Giriş yapmanız gerekiyor.");
           return;
         }
 
+        debugLog("📧 Email kontrolü", { userEmail: user.email, adminEmails: ADMIN_EMAILS });
+        updateLoadingMessage("Admin yetkisi kontrol ediliyor...");
+        
         currentUser = user;
 
         // Admin email kontrolü
-        if (!ADMIN_EMAILS.includes(user.email)) {
-          redirectToLogin("Bu sayfaya erişim yetkiniz yok.");
+        const isAdmin = ADMIN_EMAILS.includes(user.email);
+        debugLog("✅ Admin kontrolü sonucu", { isAdmin, email: user.email });
+        
+        if (!isAdmin) {
+          debugLog("⛔ Admin yetkisi yok");
+          redirectToLogin("Bu sayfaya erişim yetkiniz yok. Email: " + user.email);
           return;
         }
 
+        debugLog("🎉 Admin yetkisi onaylandı!");
+        updateLoadingMessage("Admin paneli yükleniyor...");
+        
         // Admin panelini göster
-        document.getElementById("loading-screen").style.display = "none";
-        document.getElementById("admin-content").style.display = "block";
+        setTimeout(() => {
+          document.getElementById("loading-screen").style.display = "none";
+          document.getElementById("admin-content").style.display = "block";
+        }, 500);
         
         // Admin ismini göster
         document.getElementById("admin-name").textContent = user.email;
         
+        debugLog("📊 Veriler yükleniyor...");
         // Verileri yükle
         await loadPDFs();
         await loadStats();
+        
+        debugLog("✨ Admin paneli hazır!");
 
       } catch (err) {
-        console.error("Admin kontrol hatası:", err);
-        redirectToLogin("Bir hata oluştu.");
+        debugLog("🔥 Kritik hata", err);
+        console.error("Admin kontrol kritik hatası:", err);
+        updateLoadingMessage("Hata: " + err.message);
+        
+        setTimeout(() => {
+          redirectToLogin("Bir hata oluştu: " + err.message);
+        }, 2000);
       }
     }
 
     function redirectToLogin(message) {
+      debugLog("🚪 Login sayfasına yönlendiriliyor", message);
       alert(message);
       window.location.href = "index.html";
     }
 
-    // PDF Yükleme - YENİ YEREL YÜKLEME SİSTEMİ
+    // PDF Yükleme
     document.getElementById("pdf-upload-form").addEventListener("submit", async function(e) {
       e.preventDefault();
       
@@ -189,7 +268,7 @@
         formData.append('visibility', visibility);
         formData.append('token', token);
 
-        console.log("Yükleme başlatılıyor...", {
+        debugLog("Yükleme başlatılıyor", {
           fileName: file.name,
           fileSize: file.size,
           title: title
@@ -198,22 +277,22 @@
         // PHP'ye yükle
         const response = await fetch('upload.php', {
           method: 'POST',
-          body: formData
+          body: formData,
           headers: {
             'Accept': 'application/json',
           }
         });
 
-        console.log("Sunucu yanıtı:", response.status, response.statusText);
+        debugLog("Sunucu yanıtı", { status: response.status, statusText: response.statusText });
 
         const responseText = await response.text();
-        console.log("Sunucu yanıt içeriği:", responseText);
+        debugLog("Sunucu yanıt içeriği", responseText.substring(0, 200));
 
         let result;
         try {
           result = JSON.parse(responseText);
         } catch (parseError) {
-          console.error("JSON parse hatası:", parseError);
+          debugLog("JSON parse hatası", parseError);
           throw new Error("Sunucudan geçersiz yanıt: " + responseText.substring(0, 200));
         }
 
@@ -221,7 +300,7 @@
           throw new Error(result.error || 'Yükleme hatası: ' + response.status);
         }
 
-        console.log("Yükleme başarılı:", result);
+        debugLog("Yükleme başarılı", result);
 
         // Database'e bilgileri kaydet
         const { data: dbData, error: dbError } = await supabase
@@ -242,7 +321,7 @@
           ]);
 
         if (dbError) {
-          console.error("Database hatası:", dbError);
+          debugLog("Database hatası", dbError);
           throw new Error("Database kayıt hatası: " + dbError.message);
         }
 
@@ -256,6 +335,7 @@
         await loadStats();
 
       } catch (error) {
+        debugLog("PDF yükleme hatası", error);
         console.error("PDF yükleme hatası:", error);
         alert("PDF yüklenirken hata oluştu:\n\n" + error.message);
       } finally {
@@ -268,12 +348,19 @@
     // PDF'leri yükle
     async function loadPDFs() {
       try {
+        debugLog("PDF listesi yükleniyor");
+        
         const { data, error } = await supabase
           .from('pdf_files')
           .select('*')
           .order('upload_date', { ascending: false });
 
-        if (error) throw error;
+        if (error) {
+          debugLog("PDF listesi yükleme hatası", error);
+          throw error;
+        }
+
+        debugLog("PDF listesi yüklendi", { count: data.length });
 
         const pdfList = document.getElementById("pdf-list");
         
@@ -298,14 +385,17 @@
         `).join('');
 
       } catch (error) {
+        debugLog("PDF listesi yükleme kritik hatası", error);
         console.error("PDF'ler yüklenirken hata:", error);
-        document.getElementById("pdf-list").innerHTML = '<p style="color: red;">PDF\'ler yüklenirken hata oluştu.</p>';
+        document.getElementById("pdf-list").innerHTML = '<p style="color: red;">PDF\'ler yüklenirken hata oluştu: ' + error.message + '</p>';
       }
     }
 
     // İstatistikleri yükle
     async function loadStats() {
       try {
+        debugLog("İstatistikler yükleniyor");
+        
         // PDF sayısı
         const { data: pdfData, error: pdfError } = await supabase
           .from('pdf_files')
@@ -313,6 +403,7 @@
         
         if (!pdfError) {
           document.getElementById("total-pdfs").textContent = pdfData.length;
+          debugLog("PDF sayısı", pdfData.length);
         }
 
         // Kullanıcı sayısı
@@ -322,21 +413,25 @@
         
         if (!userError) {
           document.getElementById("total-users").textContent = userData.length;
+          debugLog("Kullanıcı sayısı", userData.length);
         }
 
         // İndirme sayısı (şimdilik sabit)
         document.getElementById("total-downloads").textContent = "0";
 
       } catch (error) {
+        debugLog("İstatistik yükleme hatası", error);
         console.error("İstatistik yükleme hatası:", error);
       }
     }
 
-    // PDF silme - YENİ: Yerel dosyaları da sil
+    // PDF silme
     async function deletePDF(pdfId, filePath, storageType) {
       if (!confirm("Bu PDF'i silmek istediğinize emin misiniz?")) return;
 
       try {
+        debugLog("PDF siliniyor", { pdfId, filePath, storageType });
+        
         // Yerel depolamadan silme
         if (storageType === 'local') {
           const formData = new FormData();
@@ -351,6 +446,7 @@
           
           if (!response.ok) {
             const result = await response.json();
+            debugLog("Dosya silinemedi", result.error);
             console.warn("Dosya silinemedi:", result.error);
           }
         } else {
@@ -360,6 +456,7 @@
             .remove([filePath]);
 
           if (storageError) {
+            debugLog("Supabase dosya silme hatası", storageError);
             console.warn("Supabase dosya silme hatası:", storageError);
           }
         }
@@ -370,19 +467,24 @@
           .delete()
           .eq('id', pdfId);
 
-        if (dbError) throw dbError;
+        if (dbError) {
+          debugLog("Database silme hatası", dbError);
+          throw dbError;
+        }
 
+        debugLog("PDF başarıyla silindi");
         alert("PDF başarıyla silindi!");
         await loadPDFs();
         await loadStats();
 
       } catch (error) {
+        debugLog("PDF silme kritik hatası", error);
         console.error("PDF silme hatası:", error);
         alert("PDF silinirken hata oluştu: " + error.message);
       }
     }
 
-    // PDF düzenleme (basit versiyon)
+    // PDF düzenleme
     function editPDF(pdfId) {
       alert("PDF düzenleme özelliği yakında eklenecek!");
     }
@@ -393,11 +495,13 @@
       if (!confirmLogout) return;
       
       try {
+        debugLog("Çıkış yapılıyor");
         await supabase.auth.signOut();
         sessionStorage.clear();
         localStorage.clear();
         window.location.href = "index.html";
       } catch (error) {
+        debugLog("Logout hatası", error);
         console.error("Logout hatası:", error);
         window.location.href = "index.html";
       }
