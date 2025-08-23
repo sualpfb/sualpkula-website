@@ -1,7 +1,7 @@
 <?php
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: POST');
+header('Access-Control-Allow-Methods: POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
 
 // Hata raporlamayı aç (geliştirme için)
@@ -11,19 +11,25 @@ ini_set('display_errors', 1);
 // Güvenlik tokeni
 define('UPLOAD_TOKEN', 'GUVENLIK_TOKENI_12345');
 
-// Admin email listesi
-$ADMIN_EMAILS = [
-    "sualpkula@gmail.com",
-    "sualpkula81@gmail.com"
-];
-
 // Maximum dosya boyutu (100MB)
 define('MAX_FILE_SIZE', 100 * 1024 * 1024);
+
+// Preflight istekleri için
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
 
 try {
     // POST kontrolü
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         throw new Exception('Sadece POST istekleri kabul edilir');
+    }
+
+    // Token kontrolü
+    $token = $_POST['token'] ?? '';
+    if ($token !== UPLOAD_TOKEN) {
+        throw new Exception('Geçersiz güvenlik tokeni');
     }
 
     $action = $_POST['action'] ?? 'upload';
@@ -38,28 +44,12 @@ try {
     http_response_code(400);
     echo json_encode([
         'success' => false,
-        'error' => $e->getMessage(),
-        'debug' => [
-            'post_data' => $_POST,
-            'files_data' => $_FILES,
-            'server_info' => [
-                'upload_max_filesize' => ini_get('upload_max_filesize'),
-                'post_max_size' => ini_get('post_max_size'),
-                'max_execution_time' => ini_get('max_execution_time')
-            ]
-        ]
+        'error' => $e->getMessage()
     ]);
+    exit();
 }
 
 function handleUploadRequest() {
-    global $ADMIN_EMAILS;
-    
-    // Token kontrolü
-    $token = $_POST['token'] ?? '';
-    if ($token !== UPLOAD_TOKEN) {
-        throw new Exception('Geçersiz güvenlik tokeni');
-    }
-
     // Form verilerini al
     $title = trim($_POST['title'] ?? '');
     $category = trim($_POST['category'] ?? '');
@@ -123,7 +113,7 @@ function handleUploadRequest() {
     }
 
     // Benzersiz dosya adı oluştur
-    $originalName = $file['name'];
+    $originalName = basename($file['name']);
     $fileName = time() . '_' . uniqid() . '.pdf';
     $filePath = $uploadDir . $fileName;
 
@@ -150,12 +140,6 @@ function handleUploadRequest() {
 }
 
 function handleDeleteRequest() {
-    // Token kontrolü
-    $token = $_POST['token'] ?? '';
-    if ($token !== UPLOAD_TOKEN) {
-        throw new Exception('Geçersiz güvenlik tokeni');
-    }
-
     $filePath = $_POST['file_path'] ?? '';
     
     if (empty($filePath)) {
