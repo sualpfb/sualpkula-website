@@ -32,7 +32,7 @@
       <h3>📄 PDF Yükleme (Yerel Sunucu)</h3>
       <p style="font-size: 12px; color: #666; margin-bottom: 15px;">Dosyalar kendi sunucunuza yüklenecek (100MB limit)</p>
       
-      <form class="upload-form" id="pdf-upload-form">
+      <form class="upload-form" id="pdf-upload-form" enctype="multipart/form-data">
         <input type="hidden" id="upload-token" value="GUVENLIK_TOKENI_12345">
         
         <input type="text" id="pdf-title" placeholder="PDF Başlığı (örn: Lineer Cebir Final)" required>
