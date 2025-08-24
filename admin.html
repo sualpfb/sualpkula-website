@@ -275,7 +275,7 @@
         });
 
         // PHP'ye yükle
-        const response = await fetch('upload.php', {
+        const response = await fetch('/api/upload.php', {
           method: 'POST',
           body: formData,
           headers: {
@@ -439,7 +439,7 @@
           formData.append('token', document.getElementById("upload-token").value);
           formData.append('action', 'delete');
           
-          const response = await fetch('upload.php', {
+          const response = await fetch('/api/upload.php', {
             method: 'POST',
             body: formData
           });
